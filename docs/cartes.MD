@@ -19,4 +19,4 @@
 | Panne d'essence | Piège | 4 | Impose un arrêt au joueur ciblé |
 | Limitation de vitesse | Piège | 6 | Impose un arrêt au joueur ciblé |
 | Accident | Piège | 8 | Impose un arrêt au joueur ciblé |
-| -10 cases | Piège | 3 | Impose un arrêt au joueur ciblé |
+| -10 cases | Piège | 3 | Impose au joueur ciblé de reculer de 10 cases |
