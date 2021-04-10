@@ -7,7 +7,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "string.h"
+#include <string.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
 
 
 #include "../dependencies/map.h"
@@ -24,7 +26,29 @@ void init_writer(void) {
     writer_fifo = open("game.fifo", O_WRONLY);
 }
 
+// Communication via mémoire partagée
+int shmNo = -1;
+int creationMemoire(void) {
+    key_t key = ftok("/tmp", 12345);
+    shmNo = shmget(key, 256, 0666);
+    if(shmNo < 0) {
+        perror("Erreur lors de la création de la mémoire partagée");
+        exit(-1);
+    }
+}
 
+void readMessageFromServer(void) {
+    char * shm = shmat(shmNo, NULL, SHM_RDONLY);
+    if(shm < 0) {
+        perror("Erreur lors de l\'allocation de la mémoire partagée");
+    }
+    printf("Message reçu :\n\t%s", shm);
+    int err = shmdt(shm);
+    if(err < 0) {
+        perror("Erreur lors du détachement de la mémoire partagée");
+        exit(-1);
+    }
+}
 
 int main(void) {
     printf("Bienvenue dans le client du 400 miles !\n");
