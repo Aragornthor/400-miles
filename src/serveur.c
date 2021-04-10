@@ -25,7 +25,7 @@ void * creerCarte(char * nom, int type, int move, char * desc) {
     tmp.movement = move;
     tmp.description = desc;
     
-    return (void *) tmp;
+    return &tmp;
 }
 
 void genererCartes(void) {
