@@ -71,11 +71,11 @@ int main(int argc, char *argv[]) {
     // On affiche le nombre de cases sur la carte
     printf("La carte contient %d cases\n", verifierNbCases());
 
-
+    
     struct joueur joueurs[nbJoueur];
     for(int compteur = 0; compteur < nbJoueur; ++compteur) {
-        ordreJoueur[compteur] = lancerDe(nbJoueur);
-        printf("Joueur %d a tiré %d\n", compteur, ordreJoueur[compteur]);
+        joueurs[compteur] = lancerDe(nbJoueur);
+        printf("Joueur %d a tiré %d\n", compteur, joueurs[compteur]);
     }
 
 
