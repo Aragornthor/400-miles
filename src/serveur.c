@@ -30,7 +30,7 @@ struct carte creerCarte(char * nom, int type, int move, char * desc) {
 
 void shufflePioche(void) {
     for(int i = 0; i < (NB_PIOCHE / 2); ++i) {
-        int rand = rand() % NB_PIOCHE + (NB_PIOCHE / 2);
+        int ran = rand() % NB_PIOCHE + (NB_PIOCHE / 2);
         
         struct carte tmp = pioche[i];
         pioche[i] = pioche[rand];
