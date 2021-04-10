@@ -1,10 +1,8 @@
-#include "carte.h"
-
 struct joueur{
     int ordre;
     char * pseudo;
 
-    struct carte main[7];
+    //struct carte main[7];
 
     bool isAs;
     bool isCitern;
@@ -12,6 +10,6 @@ struct joueur{
     bool isPrioritaire;
 
     bool isStun;
-    struct carte * stunningCarte;
+    //struct carte * stunningCarte;
 };
 
