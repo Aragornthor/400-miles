@@ -14,10 +14,10 @@
 
 struct carte pioche[NB_PIOCHE];
 enum carteType {
-    MOVEMENT, UNIQUE, AVANTAGE, PIEGE
+    MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3
 }
 
-struct carte creerCarte(char * nom, struct carteType type, int move, char * desc) {
+struct carte creerCarte(char * nom, carteType type, int move, char * desc) {
     struct carte tmp;
     tmp.nom = nom;
     tmp.carteType = type;
