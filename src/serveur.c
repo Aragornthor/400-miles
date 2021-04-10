@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
+#include <string.h>
 
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
@@ -185,6 +185,15 @@ int main(int argc, char *argv[]) {
     for(int i = 0; i < 10; ++i) {
         printf("\t%s | %s\n", pioche[i].nom, pioche[i].description);
     }
+
+    char msg[256];
+    createListener();   
+    do {
+        printf("RX : ");
+        read(reader_fifo, msg, sizeof(msg));
+        printf("%s\n",msg);
+    } while (strcmp(msg, "STOP\n") != 0);
+    close(reader_fifo);
 
     return 0;
 }
