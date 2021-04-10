@@ -73,14 +73,6 @@ int main(void) {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
     printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
 
-    init_writer();
-    char msg[256];
-    do {
-        fgets(msg, 256, stdin);
-        write(writer_fifo, msg, strlen(msg)+1);
-    } while (strcmp(msg, "STOP\n") != 0);
-    close(writer_fifo);
-
     bool isValid = false;
     while(isValid == false) {
         char * msg = readMessageFromServer();
@@ -94,6 +86,15 @@ int main(void) {
     }
 
     shmctl(shmNo, IPC_RMID, NULL);
+
+
+    init_writer();
+    char msg[256];
+    do {
+        fgets(msg, 256, stdin);
+        write(writer_fifo, msg, strlen(msg)+1);
+    } while (strcmp(msg, "STOP\n") != 0);
+    close(writer_fifo);
 
     return 0;
 }

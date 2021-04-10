@@ -220,6 +220,13 @@ int main(int argc, char *argv[]) {
         printf("\t%s | %s\n", pioche[i].nom, pioche[i].description);
     }
 
+
+    printf("Que voulez-vous envoyez au client ? ");
+    char * buffer;
+    scanf("%s", buffer);
+    sendMessageToClient(buffer);
+    printf("Message envoyé : %s\n", buffer);
+
     char msg[256];
     createListener();   
     do {
@@ -228,13 +235,6 @@ int main(int argc, char *argv[]) {
         printf("%s\n",msg);
     } while (strcmp(msg, "STOP\n") != 0);
     close(reader_fifo);
-
-
-    printf("Que voulez-vous envoyez au client ? ");
-    char * buffer;
-    scanf("%s", buffer);
-    sendMessageToClient(buffer);
-    printf("Message envoyé : %s\n", buffer);
 
     return 0;
 }
