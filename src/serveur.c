@@ -33,8 +33,8 @@ void shufflePioche(void) {
         int ran = rand() % NB_PIOCHE + (NB_PIOCHE / 2);
         
         struct carte tmp = pioche[i];
-        pioche[i] = pioche[rand];
-        pioche[rand] = tmp;
+        pioche[i] = pioche[ran];
+        pioche[ran] = tmp;
     }
 }
 
