@@ -14,6 +14,9 @@
 #define NB_PIOCHE 120
 
 struct carte pioche[NB_PIOCHE];
+enum carteType {
+    MOVEMENT, UNIQUE, AVANTAGE, PIEGE
+}
 
 struct carte creerCarte(char * nom, struct carteType type, int move, char * desc) {
     struct carte tmp;
