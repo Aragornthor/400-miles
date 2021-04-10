@@ -13,7 +13,7 @@
 #define false 0
 #define NB_PIOCHE 120
 
-struct carte * pioche[NB_PIOCHE];
+struct carte pioche[NB_PIOCHE];
 enum carteType {
     MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3
 };
