@@ -134,6 +134,8 @@ int main(int argc, char *argv[]) {
         printf("Joueur %d a tiré %d\n", compteur, joueurs[compteur].ordre);
     }
 
+    genererCartes();
+    printf("Il y a %d cartes dans la pioche\n", sizeof(pioche));
 
     return 0;
 }
