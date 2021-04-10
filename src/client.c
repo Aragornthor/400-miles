@@ -47,7 +47,7 @@ void init_reader(void) {
 // Communication via mémoire partagée
 int shmNo = -1;
 int creationMemoire(void) {
-    key_t key = ftok("/tmp", 12345);
+    key_t key = ftok("/tmp", 123456);
     shmNo = shmget(key, 256, 0666);
     if(shmNo < 0) {
         perror("Erreur lors de la création de la mémoire partagée");
@@ -87,12 +87,16 @@ int main(void) {
     bool isValid = false;
     while(isValid == false) {
         char * msg = readMessageFromServer();
+        printf("MSG = %s\n", msg);
         char * header = "";
         strncpy(header, msg, 4);
+        printf("HEADER = %s\n", header);
         if(strcmp(header, "400M") == 0) {
             isValid = true;
         }
     }
+
+    shmctl(shmNo, IPC_RMID, NULL);
 
     return 0;
 }
