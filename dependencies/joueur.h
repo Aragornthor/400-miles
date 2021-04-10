@@ -2,7 +2,7 @@ struct joueur{
     int ordre;
     char * pseudo;
 
-    struct carte main[7];
+    void main[7];
 
     bool isAs;
     bool isCitern;
@@ -10,6 +10,6 @@ struct joueur{
     bool isPrioritaire;
 
     bool isStun;
-    struct carte * stunningCarte;
+    void * stunningCarte;
 };
 
