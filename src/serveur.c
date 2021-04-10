@@ -7,7 +7,6 @@
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
 #include "../dependencies/carte.h"
-#include "../dependencies/carteType.h"
 
 #define true 1
 #define false 0
