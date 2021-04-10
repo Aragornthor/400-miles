@@ -2,7 +2,7 @@ struct joueur{
     int ordre;
     char * pseudo;
 
-    void main[7];
+    void * main;
 
     bool isAs;
     bool isCitern;
