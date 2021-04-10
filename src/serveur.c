@@ -66,7 +66,6 @@ void genererCartes(void) {
             pioche[i] = creerCarte("Accident", PIEGE, 0, "Impose un arrêt au joueur ciblé");
         } else {
             pioche[i] = creerCarte("Fin de limitation", AVANTAGE, 0, "Annule les ralentissements");
-            printf("tailel carte %d\n", sizeof(pioche[i]));
         }
     }
 }
@@ -158,7 +157,7 @@ int main(int argc, char *argv[]) {
     }
 
     genererCartes();
-    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche));
+    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
 
     return 0;
 }
