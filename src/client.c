@@ -37,7 +37,7 @@ int creationMemoire(void) {
     }
 }
 
-void readMessageFromServer(void) {
+char *  readMessageFromServer(void) {
     char * shm = shmat(shmNo, NULL, SHM_RDONLY);
     if(shm < 0) {
         perror("Erreur lors de l\'allocation de la mémoire partagée");
@@ -65,6 +65,16 @@ int main(void) {
         write(writer_fifo, msg, strlen(msg)+1);
     } while (strcmp(msg, "STOP\n") != 0);
     close(writer_fifo);
+
+    bool isValid = false;
+    while(isValid == false) {
+        char * msg = readMessageFromServer();
+        char * header = "";
+        strncpy(header, msg, 4);
+        if(strcmp(header, "400M") == 0) {
+            isValid = true;
+        }
+    }
 
     return 0;
 }

@@ -229,5 +229,10 @@ int main(int argc, char *argv[]) {
     } while (strcmp(msg, "STOP\n") != 0);
     close(reader_fifo);
 
+
+    char * buffer;
+    scanf("%s", buffer);
+    sendMessageToClient(buffer);
+
     return 0;
 }
