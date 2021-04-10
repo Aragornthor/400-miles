@@ -17,7 +17,7 @@ enum carteType {
     MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3
 }
 
-struct carte creerCarte(char * nom, carteType type, int move, char * desc) {
+struct carte creerCarte(char * nom, int type, int move, char * desc) {
     struct carte tmp;
     tmp.nom = nom;
     tmp.carteType = type;
