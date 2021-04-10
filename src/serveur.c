@@ -18,7 +18,7 @@ enum carteType {
     MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3
 };
 
-void * creerCarte(char * nom, int type, int move, char * desc) {
+struct carte creerCarte(char * nom, int type, int move, char * desc) {
     struct carte tmp;
     tmp.nom = nom;
     tmp.type = type;
@@ -31,41 +31,41 @@ void * creerCarte(char * nom, int type, int move, char * desc) {
 void genererCartes(void) {
     for(int i = 0; i < NB_PIOCHE; ++i) {
         if(i < 30) {
-            pioche[i] = (struct carte) creerCarte("25 miles", MOVEMENT, 1, "Carte pour avancer de 1 case");
+            pioche[i] = creerCarte("25 miles", MOVEMENT, 1, "Carte pour avancer de 1 case");
         } else if(i < 50) {
-            pioche[i] = (struct carte) creerCarte("50 miles", MOVEMENT, 2, "Carte pour avancer de 2 cases");
+            pioche[i] = creerCarte("50 miles", MOVEMENT, 2, "Carte pour avancer de 2 cases");
         } else if(i < 60) {
-            pioche[i] = (struct carte) creerCarte("75 miles", MOVEMENT, 3, "Carte pour avancer de 3 cases");
+            pioche[i] = creerCarte("75 miles", MOVEMENT, 3, "Carte pour avancer de 3 cases");
         } else if(i < 65) {
-            pioche[i] = (struct carte) creerCarte("100 miles", MOVEMENT, 4, "Carte pour avancer de 4 cases");
+            pioche[i] = creerCarte("100 miles", MOVEMENT, 4, "Carte pour avancer de 4 cases");
         } else if(i < 66) {
-            pioche[i] = (struct carte) creerCarte("As du volant", UNIQUE, 0, "Carte empêchant les accidents");
+            pioche[i] = creerCarte("As du volant", UNIQUE, 0, "Carte empêchant les accidents");
         } else if(i < 67) {
-            pioche[i] = (struct carte) creerCarte("Increvable", UNIQUE, 0, "Carte empêchant les crevaisons");
+            pioche[i] = creerCarte("Increvable", UNIQUE, 0, "Carte empêchant les crevaisons");
         } else if(i < 68) {
-            pioche[i] = (struct carte) creerCarte("Citerne", UNIQUE, 0, "Carte empêchant les pannes d'essence");
+            pioche[i] = creerCarte("Citerne", UNIQUE, 0, "Carte empêchant les pannes d'essence");
         } else if(i < 69) {
-            pioche[i] = (struct carte) creerCarte("Véhicule prioritaire", UNIQUE, 0, "Carte empêchant les ralentissements et feux rouges");
+            pioche[i] = creerCarte("Véhicule prioritaire", UNIQUE, 0, "Carte empêchant les ralentissements et feux rouges");
         } else if(i < 77) {
-            pioche[i] = (struct carte) creerCarte("Feu vert", AVANTAGE, 0, "Utile au 1er tour et annulant les feux rouges");
+            pioche[i] = creerCarte("Feu vert", AVANTAGE, 0, "Utile au 1er tour et annulant les feux rouges");
         } else if(i < 83) {
-            pioche[i] = (struct carte) creerCarte("Réparation", AVANTAGE, 0, "Annule les accidents");
+            pioche[i] = creerCarte("Réparation", AVANTAGE, 0, "Annule les accidents");
         } else if(i < 85) {
-            pioche[i] = (struct carte) creerCarte("Roue de secours", AVANTAGE, 0, "Annule les crevaisons");
+            pioche[i] = creerCarte("Roue de secours", AVANTAGE, 0, "Annule les crevaisons");
         } else if(i < 87) {
-            pioche[i] = (struct carte) creerCarte("Pompe à essence", AVANTAGE, 0, "Annule les pannes d'essence");
+            pioche[i] = creerCarte("Pompe à essence", AVANTAGE, 0, "Annule les pannes d'essence");
         } else if(i < 95) {
-            pioche[i] = (struct carte) creerCarte("Feu rouge", PIEGE, 0, "Impose un arrêt au joueur ciblé");
+            pioche[i] = creerCarte("Feu rouge", PIEGE, 0, "Impose un arrêt au joueur ciblé");
         } else if(i < 99) {
-            pioche[i] = (struct carte) creerCarte("Crevaison", PIEGE, 0, "Impose un arrêt au joueur ciblé");
+            pioche[i] = creerCarte("Crevaison", PIEGE, 0, "Impose un arrêt au joueur ciblé");
         } else if(i < 103) {
-            pioche[i] = (struct carte) creerCarte("Panne d'essence", PIEGE, 0, "Impose un arrêt au joueur ciblé");
+            pioche[i] = creerCarte("Panne d'essence", PIEGE, 0, "Impose un arrêt au joueur ciblé");
         } else if(i < 109) {
-            pioche[i] = (struct carte) creerCarte("Limitation de vitesse", PIEGE, 0, "Impose un ralentissement au joueur ciblé");
+            pioche[i] = creerCarte("Limitation de vitesse", PIEGE, 0, "Impose un ralentissement au joueur ciblé");
         } else if(i < 117) {
-            pioche[i] = (struct carte) creerCarte("Accident", PIEGE, 0, "Impose un arrêt au joueur ciblé");
+            pioche[i] = creerCarte("Accident", PIEGE, 0, "Impose un arrêt au joueur ciblé");
         } else {
-            pioche[i] = (struct carte) creerCarte("Fin de limitation", AVANTAGE, 0, "Annule les ralentissements");
+            pioche[i] = creerCarte("Fin de limitation", AVANTAGE, 0, "Annule les ralentissements");
         }
     }
 }
