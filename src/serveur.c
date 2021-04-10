@@ -20,7 +20,7 @@ enum carteType {
 struct carte creerCarte(char * nom, int type, int move, char * desc) {
     struct carte tmp;
     tmp.nom = nom;
-    tmp.carteType = type;
+    tmp.type = type;
     tmp.movement = move;
     tmp.description = desc;
     
