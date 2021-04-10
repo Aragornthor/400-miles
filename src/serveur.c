@@ -4,6 +4,10 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
@@ -12,6 +16,8 @@
 #define true 1
 #define false 0
 #define NB_PIOCHE 120
+
+int reader_fifo;
 
 struct carte pioche[NB_PIOCHE];
 enum carteType {
@@ -68,6 +74,11 @@ void genererCartes(void) {
             pioche[i] = creerCarte("Fin de limitation", AVANTAGE, 0, "Annule les ralentissements");
         }
     }
+}
+
+void createListener(void) {
+    mkfifo("game.fifo",0666);
+    reader_fifo = open("game.fifo", O_RDONLY);
 }
 
 char questionNbJoueur(void) {
@@ -157,11 +168,8 @@ int main(int argc, char *argv[]) {
     }
 
     genererCartes();
-<<<<<<< HEAD
-    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche)/24);
-=======
     printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
->>>>>>> cab3f70ea645e07d11772a5864a2dd25cb6d8c35
+
 
     return 0;
 }
