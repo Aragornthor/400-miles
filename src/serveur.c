@@ -14,7 +14,7 @@
 
 struct carte pioche[NB_PIOCHE];
 enum carteType {
-    MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3
+    MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3;
 }
 
 void * creerCarte(char * nom, int type, int move, char * desc) {
