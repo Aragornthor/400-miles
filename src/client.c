@@ -7,15 +7,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-<<<<<<< HEAD
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include "string.h"
-=======
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
->>>>>>> 139d0d74adf2f34cb6e24efd6892fac6c8e1025f
 
 
 #include "../dependencies/map.h"
@@ -39,14 +36,12 @@ void init_writer(void) {
     writer_fifo = open("game.fifo", O_WRONLY);
 }
 
-<<<<<<< HEAD
 void init_reader(void) {
     id_file = msgget(rx_key, IPC_CREAT | IPC_EXCL);
     CHECK(id_file, "Échec lors de la création de la lecture.\n");
     CHECK(msgctl(id_file, IPC_STAT, &buf), "Échec lors de la récupération des informations");
 }
 
-=======
 // Communication via mémoire partagée
 int shmNo = -1;
 int creationMemoire(void) {
@@ -57,7 +52,6 @@ int creationMemoire(void) {
         exit(-1);
     }
 }
->>>>>>> 139d0d74adf2f34cb6e24efd6892fac6c8e1025f
 
 char *  readMessageFromServer(void) {
     char * shm = shmat(shmNo, NULL, SHM_RDONLY);
