@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
 
     // On récupère le nombre de joueurs
     int nbJoueur = (questionNbJoueur() - '0'); // conversion des char en int
+    while(nbJoueur < 2 || nbJoueur > 4) {
         nbJoueur = questionNbJoueur();
     }
     
