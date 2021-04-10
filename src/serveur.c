@@ -28,13 +28,15 @@ struct carte creerCarte(char * nom, int type, int move, char * desc) {
     return tmp;
 }
 
-void shufflePioche(void) {
-    for(int i = 0; i < (NB_PIOCHE / 2); ++i) {
-        int ran = rand() % NB_PIOCHE + (NB_PIOCHE / 2);
-        
-        struct carte tmp = pioche[i];
-        pioche[i] = pioche[ran];
-        pioche[ran] = tmp;
+void shufflePioche(int nbShuffle) {
+    for(int j = 0; j < nbShuffle; ++j) {
+        for(int i = 0; i < (NB_PIOCHE / 2); ++i) {
+            int ran = rand() % NB_PIOCHE + 1;
+            
+            struct carte tmp = pioche[i];
+            pioche[i] = pioche[ran];
+            pioche[ran] = tmp;
+        }
     }
 }
 
@@ -169,7 +171,7 @@ int main(int argc, char *argv[]) {
     genererCartes();
     printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
 
-    shufflePioche();
+    shufflePioche(10);
     printf("Affichage des 10ères cartes de la pioche (tmp pour le dév) :\n");
     for(int i = 0; i < 10; ++i) {
         printf("\t%s | %s\n", pioche[i].nom, pioche[i].description);
