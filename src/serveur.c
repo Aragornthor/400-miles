@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
 
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
@@ -16,8 +18,38 @@
 #define true 1
 #define false 0
 #define NB_PIOCHE 120
+#define SHM_SIZE 256
 
+// Communication via messages et tubes
 int reader_fifo;
+
+// Communication via mémoire partagée
+int shmNo = -1;
+
+void creationMemoire(void) {
+    key_t key = ftok("/tmp", 12345);
+    shmNo = shmget(key, SHM_SIZE, 0666);
+    if(shmNo < 0) {
+        perror("Erreur lors de la création de la mémoire partagée");
+        exit(-1);
+    }
+}
+
+void sendMessageToClient(char * msg) {
+    char * shm = shmat(shmNo, NULL, 0);
+    if(shm < 0) {
+        perror("Erreur lors de l\'allocation de la mémoire partagée");
+    }
+
+    char * protocol = "400M:S:";
+    strncat(protocol, msg, SHM_SIZE);
+    strncpy(shm, protocol, SHM_SIZE);
+    int err = shmdt(shm);
+    if(err < 0) {
+        perror("Erreur lors du détachement de la mémoire partagée");
+        exit(-1);
+    }
+}
 
 struct carte pioche[NB_PIOCHE];
 enum carteType {
@@ -196,6 +228,11 @@ int main(int argc, char *argv[]) {
         printf("%s\n",msg);
     } while (strcmp(msg, "STOP\n") != 0);
     close(reader_fifo);
+
+
+    char * buffer;
+    scanf("%s", buffer);
+    sendMessageToClient(buffer);
 
     return 0;
 }
