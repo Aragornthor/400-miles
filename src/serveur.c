@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
     }
 
     genererCartes();
-    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche));
+    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche)/24);
 
     return 0;
 }
