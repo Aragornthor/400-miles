@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <stdbool.h>
 
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
@@ -132,9 +133,27 @@ int main(int argc, char *argv[]) {
 
     
     struct joueur joueurs[nbJoueur];
-    for(int compteur = 0; compteur < nbJoueur; ++compteur) {
-        joueurs[compteur].ordre = lancerDe(nbJoueur);
-        printf("Joueur %d a tiré %d\n", compteur, joueurs[compteur].ordre);
+
+    bool ordre[nbJoueur];
+    for (int i = 0; i<nbJoueur; i++) {
+        ordre[i] = false;
+    }
+
+    for (int i = 0; i<nbJoueur; i++) {
+        bool used = true;
+        int rdm;
+        while(used) {
+            rdm = lancerDe(nbJoueur);
+            if (ordre[rdm-1] == false) {
+                used = false;
+                ordre[rdm-1] = true;
+                joueurs[i].ordre = rdm;
+            }
+        }
+    }
+
+    for (int i = 0; i<nbJoueur; i++) {
+        printf("Joueur %d : Place %d\n", i, joueurs[i].ordre);
     }
 
     genererCartes();
