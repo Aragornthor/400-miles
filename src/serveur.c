@@ -27,7 +27,7 @@ int reader_fifo;
 int shmNo = -1;
 
 void creationMemoire(void) {
-    key_t key = ftok("/tmp", 12345);
+    key_t key = ftok("/tmp", 123456);
     shmNo = shmget(key, SHM_SIZE, 0666);
     if(shmNo < 0) {
         perror("Erreur lors de la création de la mémoire partagée");
@@ -230,9 +230,11 @@ int main(int argc, char *argv[]) {
     close(reader_fifo);
 
 
+    printf("Que voulez-vous envoyez au client ? ");
     char * buffer;
     scanf("%s", buffer);
     sendMessageToClient(buffer);
+    printf("")
 
     return 0;
 }
