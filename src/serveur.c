@@ -18,14 +18,14 @@ enum carteType {
     MOVEMENT = 0, UNIQUE = 1, AVANTAGE = 2, PIEGE = 3
 }
 
-(struct carte) creerCarte(char * nom, int type, int move, char * desc) {
+void * creerCarte(char * nom, int type, int move, char * desc) {
     struct carte tmp;
     tmp.nom = nom;
     tmp.type = type;
     tmp.movement = move;
     tmp.description = desc;
     
-    return tmp;
+    return (void *) tmp;
 }
 
 void genererCartes(void) {
