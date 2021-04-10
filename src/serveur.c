@@ -25,7 +25,7 @@ struct carte creerCarte(char * nom, int type, int move, char * desc) {
     tmp.movement = move;
     tmp.description = desc;
     
-    return &tmp;
+    return tmp;
 }
 
 void genererCartes(void) {
