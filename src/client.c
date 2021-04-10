@@ -7,6 +7,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include "string.h"
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
@@ -16,14 +19,27 @@
 #include "../dependencies/joueur.h"
 #include "../dependencies/carte.h"
 
+#define CHECK(sts, msg) if ((sts)==-1) {perror(msg); exit(-1);}
+
 #define true 1
 #define false 0
 
-int writer_fifo;
+
+int writer_fifo, id_file;
+key_t rx_key=28487;
+struct msqid_ds buf;
+int client_id = rand();
+
 
 void init_writer(void) {
     mkfifo("game.fifo", 0666);
     writer_fifo = open("game.fifo", O_WRONLY);
+}
+
+void init_reader(void) {
+    id_file = msgget(rx_key, IPC_CREAT | IPC_EXCL);
+    CHECK(id_file, "Échec lors de la création de la lecture.\n");
+    CHECK(msgctl(id_file, IPC_STAT, &buf), "Échec lors de la récupération des informations");
 }
 
 // Communication via mémoire partagée
