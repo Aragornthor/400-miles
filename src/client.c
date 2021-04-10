@@ -9,11 +9,10 @@
 #include <fcntl.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include "string.h"
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
-
+#include <errno.h>
 
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
@@ -21,9 +20,6 @@
 #include "../dependencies/message.h"
 
 #define CHECK(sts, msg) if ((sts)==-1) {perror(msg); exit(-1);}
-
-#define true 1
-#define false 0
 
 
 int writer_fifo, id_file;
@@ -41,6 +37,7 @@ void init_reader(void) {
     id_file = msgget(rx_key, IPC_CREAT | IPC_EXCL);
     CHECK(id_file, "Échec lors de la création de la lecture.\n");
     CHECK(msgctl(id_file, IPC_STAT, &buf), "Échec lors de la récupération des informations");
+   
     client_id = rand();
 }
 
