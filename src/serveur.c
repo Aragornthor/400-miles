@@ -17,7 +17,7 @@ char questionNbJoueur(void) {
 
     // On vérifie si il s'agit d'un nombre valide
     if(nbJoueur < '2' || nbJoueur > '4') {
-        printf("La valeur saisit n'est pas correcte !\n");
+        printf("\nLa valeur saisit n'est pas correcte !\n");
     } else {
         printf("La partie va être configurée avec %c joueurs\n", nbJoueur);
     }
