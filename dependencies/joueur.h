@@ -1,4 +1,4 @@
-struct joueur(
-    int ordre,
-    char * pseudo
-);
+struct joueur{
+    int ordre;
+    char * pseudo;
+};
