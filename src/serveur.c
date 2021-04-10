@@ -169,6 +169,7 @@ int main(int argc, char *argv[]) {
     genererCartes();
     printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
 
+    shufflePioche();
     printf("Affichage des 10ères cartes de la pioche (tmp pour le dév) :\n");
     for(int i = 0; i < 10; ++i) {
         printf("\t%s | %s\n", pioche[i].nom, pioche[i].description);
