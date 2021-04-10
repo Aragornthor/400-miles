@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
     char * buffer;
     scanf("%s", buffer);
     sendMessageToClient(buffer);
-    printf("")
+    printf("Message envoyé : %s\n", buffer);
 
     return 0;
 }
