@@ -157,7 +157,11 @@ int main(int argc, char *argv[]) {
     }
 
     genererCartes();
+<<<<<<< HEAD
     printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche)/24);
+=======
+    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
+>>>>>>> cab3f70ea645e07d11772a5864a2dd25cb6d8c35
 
     return 0;
 }
