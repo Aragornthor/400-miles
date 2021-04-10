@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     
     struct joueur joueurs[nbJoueur];
     for(int compteur = 0; compteur < nbJoueur; ++compteur) {
-        joueurs[compteur] = lancerDe(nbJoueur);
+        joueurs[compteur].ordre = lancerDe(nbJoueur);
         printf("Joueur %d a tiré %d\n", compteur, joueurs[compteur]);
     }
 
