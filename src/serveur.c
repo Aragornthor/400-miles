@@ -66,7 +66,6 @@ void genererCartes(void) {
             pioche[i] = creerCarte("Accident", PIEGE, 0, "Impose un arrêt au joueur ciblé");
         } else {
             pioche[i] = creerCarte("Fin de limitation", AVANTAGE, 0, "Annule les ralentissements");
-            printf("tailel carte %d\n", sizeof(pioche[i]));
         }
     }
 }
