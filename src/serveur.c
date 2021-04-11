@@ -10,18 +10,26 @@
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
+#include <sys/msg.h>
+#include <pthread.h>
 
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
 #include "../dependencies/carte.h"
+#include "../dependencies/message.h"
 
 #define true 1
 #define false 0
 #define NB_PIOCHE 120
 #define SHM_SIZE 256
+#define SRV_KEY 12345
+
+#define CHECK(sts,msg) if ((sts) == -1 )  { perror(msg);exit(-1);}
 
 // Communication via messages et tubes
-int reader_fifo;
+int reader_fifo, id_file;
+pthread_t thread_listener;
+key_t tx_key;
 
 // Communication via mémoire partagée
 int shmNo = -1;
@@ -35,21 +43,47 @@ void creationMemoire(void) {
     }
 }
 
+/*
+// Code de quentin qui segfault
+
 void sendMessageToClient(char * msg) {
     char * shm = shmat(shmNo, NULL, 0);
     if(shm < 0) {
         perror("Erreur lors de l\'allocation de la mémoire partagée");
     }
-
     char * protocol = "400M:S:";
     strncat(protocol, msg, SHM_SIZE);
     strncpy(shm, protocol, SHM_SIZE);
     int err = shmdt(shm);
+    
     if(err < 0) {
         perror("Erreur lors du détachement de la mémoire partagée");
         exit(-1);
     }
 }
+*/
+
+/*
+    Initialise les messages
+*/
+void initMessage(void) {
+   tx_key = ftok("/tmp", SRV_KEY);
+   id_file = msgget(tx_key, 0666 | IPC_CREAT);
+    CHECK(id_file, "Impossible de créer le flux de message");
+}
+
+void sendMessageToClient(char * message) {
+    int res;
+    char txt[256];
+    //msg.msg = message;
+    strcpy(txt, message);
+    //printf("Taille de msg : %d\n", sizeof(msg.msg));
+    res = msgsnd(id_file, (void *) &txt, sizeof(txt), 0);
+    printf("Envoyé au client : %s | status : %d\n", txt, res);
+    CHECK(res, "Envoi du message impossible\n");
+}
+
+
 
 struct carte pioche[NB_PIOCHE];
 enum carteType {
@@ -169,6 +203,19 @@ int lancerDe(int max) {
     return rand() % max + 1;
 }
 
+void *listener() {
+    char msg[256];
+    createListener();   
+    do {
+        //printf("\tCoucou, j'ai été trigger !\n");
+        //printf("RX : ");
+        read(reader_fifo, msg, sizeof(msg));
+        //printf("%s\n",msg);
+    } while (strcmp(msg, "STOP\n") != 0);
+    close(reader_fifo);
+}
+
+
 int main(int argc, char *argv[]) {
     printf("Bienvenue sur l'interface du serveur\n");
 
@@ -203,6 +250,7 @@ int main(int argc, char *argv[]) {
                 used = false;
                 ordre[rdm-1] = true;
                 joueurs[i].ordre = rdm;
+                joueurs[i].connected = false;
             }
         }
     }
@@ -221,20 +269,30 @@ int main(int argc, char *argv[]) {
     }
 
 
-    printf("Que voulez-vous envoyez au client ? ");
-    char * buffer;
-    scanf("%s", buffer);
-    sendMessageToClient(buffer);
-    printf("Message envoyé : %s\n", buffer);
+    pthread_create(&thread_listener, NULL, listener, NULL);
 
-    char msg[256];
-    createListener();   
-    do {
-        printf("RX : ");
-        read(reader_fifo, msg, sizeof(msg));
-        printf("%s\n",msg);
-    } while (strcmp(msg, "STOP\n") != 0);
-    close(reader_fifo);
+    printf("En attente de la connexion des joueurs ...\n");
+    // Procédure ici :
+    // Quand le client envoie un message comme quoi il est arrivé, le serveur lui envoie 
+    // comme quoi il attend encore x joueur(s)
+
+    // La gueule des messages se trouve dans le md
+
+
+
+    initMessage();
+    printf("Que voulez-vous envoyez au client ? ");
+    char * buffer = "test";
+    while (strcmp(buffer, "STOP\n") != 0) {
+        //printf("test");
+        scanf("%s",buffer);
+        printf("Envoi de %s", buffer);
+        sendMessageToClient(buffer);
+    }
+    printf("Fin de la lecture\n");
+    msgctl(id_file, IPC_RMID, NULL);
+
+    pthread_join(thread_listener, NULL);    
 
     return 0;
 }

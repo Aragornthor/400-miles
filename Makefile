@@ -6,10 +6,10 @@ BUILD=./build
 all : serveur client
 
 serveur : $(SRC)/serveur.c
-	$(CC) $(SRC)/serveur.c -o $(BUILD)/serveur
+	$(CC) $(SRC)/serveur.c -lpthread -o $(BUILD)/serveur
 
 client : $(SRC)/client.c
-	$(CC) $(SRC)/client.c -o $(BUILD)/client
+	$(CC) $(SRC)/client.c -lpthread -o $(BUILD)/client
 
 test : $(SRC)/HelloWorld.c
 	$(CC) $(SRC)/HelloWorld.c -o $(BUILD)/HelloWorld

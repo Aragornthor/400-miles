@@ -13,20 +13,20 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <errno.h>
-
+#include <pthread.h>
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
 #include "../dependencies/carte.h"
 #include "../dependencies/message.h"
 
 #define CHECK(sts, msg) if ((sts)==-1) {perror(msg); exit(-1);}
-
+#define SRV_KEY 12345
 
 int writer_fifo, id_file;
-key_t rx_key=28487;
+key_t rx_key;
 struct msqid_ds buf;
 int client_id;
-
+pthread_t thread_reader;
 
 void init_writer(void) {
     mkfifo("game.fifo", 0666);
@@ -34,12 +34,19 @@ void init_writer(void) {
 }
 
 void init_reader(void) {
+   /* rx_key = ftok("test", SRV_KEY);
     id_file = msgget(rx_key, IPC_CREAT | IPC_EXCL);
     CHECK(id_file, "Échec lors de la création de la lecture.\n");
     CHECK(msgctl(id_file, IPC_STAT, &buf), "Échec lors de la récupération des informations");
    
     client_id = rand();
+    */
+   rx_key = ftok("/tmp",SRV_KEY);
+   CHECK(id_file = msgget(rx_key, 0666),"PB msgget");
+
 }
+
+
 
 // Communication via mémoire partagée
 int shmNo = -1;
@@ -51,7 +58,7 @@ int creationMemoire(void) {
         exit(-1);
     }
 }
-
+/*
 char *  readMessageFromServer(void) {
     char * shm = shmat(shmNo, NULL, SHM_RDONLY);
     if(shm < 0) {
@@ -64,15 +71,9 @@ char *  readMessageFromServer(void) {
         exit(-1);
     }
 }
-
-int main(void) {
-    printf("Bienvenue dans le client du 400 miles !\n");
-
-    // On récupère la taille du terminal
-    struct winsize ws;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
-    printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
-
+*/
+/*
+void *reader() {
     bool isValid = false;
     while(isValid == false) {
         char * msg = readMessageFromServer();
@@ -86,7 +87,53 @@ int main(void) {
     }
 
     shmctl(shmNo, IPC_RMID, NULL);
+}
+*/
+void displayInformation(int id){
+	struct msqid_ds information;
 
+	CHECK(msgctl(id, IPC_STAT, &information),"msgctl");
+	
+	printf("Clé fournie à msgget : %d\n",id);
+	printf("Nombre actuel d'octets dans la file (non standard) : %ld\n",information.__msg_cbytes);
+	printf("Nombre actuel de messages dans la file : %ld\n",information.msg_qnum);
+	printf("Nombre maximum d'octets autorisés dans la file : %ld\n",information.msg_qnum);
+	printf("PID du dernier msgsnd : %d\n",information.msg_lspid);
+	printf("PID du dernier msgrcv : %d\n",information.msg_lrpid);
+	printf("UID effectif du propriétaire : %d\n",information.msg_perm.uid);
+	printf("GID effectif du propriétaire : %d\n",information.msg_perm.gid);
+	printf("UID effectif du créateur : %d\n",information.msg_perm.cuid);
+	printf("ID effectif du créateur : %d\n",information.msg_perm.cgid);
+	printf("Permissions : %d\n",information.msg_perm.mode);
+}
+
+
+void *reader() {
+    init_reader();
+    displayInformation(id_file);
+    int res;
+    message_t rx;
+    char txt[256];
+    printf("Prêt à recevoir des messages !\n");
+    strcpy(txt, "message");
+    while(strcmp(txt, "STOP\n") != 0) {
+        res = msgrcv(id_file,&txt, sizeof(txt), 1,0);
+        CHECK(res, "Impossible de récuperer le message");
+        printf("RX : Reçu de serveur : %s\n", txt);
+    }
+    printf("Fin de la lecture\n");
+
+}
+
+int main(void) {
+    printf("Bienvenue dans le client du 400 miles !\n");
+
+    // On récupère la taille du terminal
+    struct winsize ws;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+    printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
+    
+    pthread_create(&thread_reader, NULL, reader, NULL);
 
     init_writer();
     char msg[256];
@@ -95,6 +142,8 @@ int main(void) {
         write(writer_fifo, msg, strlen(msg)+1);
     } while (strcmp(msg, "STOP\n") != 0);
     close(writer_fifo);
+
+    pthread_join(thread_reader, NULL);
 
     return 0;
 }

@@ -1,6 +1,8 @@
 struct joueur{
     int ordre;
     char * pseudo;
+    bool connected;
+    int id_client;
 
     void * main;
 
