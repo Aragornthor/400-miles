@@ -34,13 +34,6 @@ void init_writer(void) {
 }
 
 void init_reader(void) {
-   /* rx_key = ftok("test", SRV_KEY);
-    id_file = msgget(rx_key, IPC_CREAT | IPC_EXCL);
-    CHECK(id_file, "Échec lors de la création de la lecture.\n");
-    CHECK(msgctl(id_file, IPC_STAT, &buf), "Échec lors de la récupération des informations");
-   
-    client_id = rand();
-    */
    rx_key = ftok("/tmp",SRV_KEY);
    CHECK(id_file = msgget(rx_key, 0666),"PB msgget");
 
@@ -111,15 +104,13 @@ void displayInformation(int id){
 void *reader() {
     init_reader();
     displayInformation(id_file);
-    int res;
-    message_t rx;
     char txt[256];
+    message_t msg;
     printf("Prêt à recevoir des messages !\n");
-    strcpy(txt, "message");
-    while(strcmp(txt, "STOP\n") != 0) {
-        res = msgrcv(id_file,&txt, sizeof(txt), 1,0);
-        CHECK(res, "Impossible de récuperer le message");
-        printf("RX : Reçu de serveur : %s\n", txt);
+    strcpy(msg.msg, "message");
+    while(strcmp(msg.msg, "STOP") != 0) {
+        CHECK(msgrcv(id_file,&msg, sizeof(char)*256, 0,MSG_NOERROR),"msgrcv");
+        printf("RX : %s\n", msg.msg);
     }
     printf("Fin de la lecture\n");
 
@@ -140,7 +131,7 @@ int main(void) {
     do {
         fgets(msg, 256, stdin);
         write(writer_fifo, msg, strlen(msg)+1);
-    } while (strcmp(msg, "STOP\n") != 0);
+    } while (strcmp(msg, "STOP") != 0);
     close(writer_fifo);
 
     pthread_join(thread_reader, NULL);

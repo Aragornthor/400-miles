@@ -30,7 +30,7 @@
 int reader_fifo, id_file;
 pthread_t thread_listener;
 key_t tx_key;
-
+int nr=0;
 // Communication via mémoire partagée
 int shmNo = -1;
 
@@ -72,14 +72,15 @@ void initMessage(void) {
     CHECK(id_file, "Impossible de créer le flux de message");
 }
 
-void sendMessageToClient(char * message) {
+
+
+void sendMessageToClient(char message[256]) {
     int res;
-    char txt[256];
-    //msg.msg = message;
-    strcpy(txt, message);
-    //printf("Taille de msg : %d\n", sizeof(msg.msg));
-    res = msgsnd(id_file, (void *) &txt, sizeof(txt), 0);
-    printf("Envoyé au client : %s | status : %d\n", txt, res);
+    message_t msg;
+    msg.type = 1;
+    strncpy(msg.msg, message, 256);
+    if(nr == 0) {nr++; return;}
+    res = msgsnd(id_file, (void *) &msg, sizeof(char)*256, 0);
     CHECK(res, "Envoi du message impossible\n");
 }
 
@@ -207,12 +208,33 @@ void *listener() {
     char msg[256];
     createListener();   
     do {
-        //printf("\tCoucou, j'ai été trigger !\n");
-        //printf("RX : ");
         read(reader_fifo, msg, sizeof(msg));
-        //printf("%s\n",msg);
+        printf("RX : %s\n",msg);
     } while (strcmp(msg, "STOP\n") != 0);
     close(reader_fifo);
+}
+
+void emptybuff() {
+    int c = 0;
+    while (c!='\n' && c!=EOF) {
+        c = getchar();
+    }
+}
+
+int readline(char *chaine, int length) {
+    char *start = NULL;
+    if (fgets(chaine, length, stdin) != NULL) {
+        start = strchr(chaine, '\n');
+        if (start != NULL) {
+            *start = '\0';
+        }else {
+            emptybuff();
+        }
+        return 1;
+    } else {
+        emptybuff();
+        return 0;
+    }
 }
 
 
@@ -282,11 +304,10 @@ int main(int argc, char *argv[]) {
 
     initMessage();
     printf("Que voulez-vous envoyez au client ? ");
-    char * buffer = "test";
-    while (strcmp(buffer, "STOP\n") != 0) {
-        //printf("test");
-        scanf("%s",buffer);
-        printf("Envoi de %s", buffer);
+    char buffer[256];
+    while (strcmp(buffer, "STOP")) {
+        printf("> ");
+        readline(buffer, 256);
         sendMessageToClient(buffer);
     }
     printf("Fin de la lecture\n");
