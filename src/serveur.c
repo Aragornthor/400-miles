@@ -252,7 +252,7 @@ void handleLogin(t_comm msg) {
         t_comm rep;
         rep.type = ERROR;
         rep.dest = msg.src;
-        strncpy(rep.msg, "Impossible de vous connecter : le nombre de clients autorisés est dépassé !", 256);
+        strncpy(rep.msg, "Impossible de vous connecter : le nombre de clients autorisés est dépassé !\n", 256);
         sendMessageToClient_comm(rep);
     }
 }
