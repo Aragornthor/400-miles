@@ -18,50 +18,37 @@
 #include "../dependencies/carte.h"
 #include "../dependencies/message.h"
 
+#include "../dependencies/comm.h"
+#include "../dependencies/connexion.h"
+
 #define true 1
 #define false 0
 #define NB_PIOCHE 120
 #define SHM_SIZE 256
-#define SRV_KEY 12345
+#define SRV_KEY 1234
 
 #define CHECK(sts,msg) if ((sts) == -1 )  { perror(msg);exit(-1);}
 
+t_connexion connexions[5];
+int nbconnexions = 0;
+int ack_remain = 0;
+int nbJoueur;
 // Communication via messages et tubes
 int reader_fifo, id_file;
 pthread_t thread_listener;
-key_t tx_key;
+key_t tx_key, shm_key;
 int nr=0;
 // Communication via mémoire partagée
-int shmNo = -1;
-
-void creationMemoire(void) {
-    key_t key = ftok("/tmp", 123456);
-    shmNo = shmget(key, SHM_SIZE, 0666);
-    if(shmNo < 0) {
-        perror("Erreur lors de la création de la mémoire partagée");
-        exit(-1);
-    }
-}
+int shared_memory;
 
 /*
-// Code de quentin qui segfault
-
-void sendMessageToClient(char * msg) {
-    char * shm = shmat(shmNo, NULL, 0);
-    if(shm < 0) {
-        perror("Erreur lors de l\'allocation de la mémoire partagée");
-    }
-    char * protocol = "400M:S:";
-    strncat(protocol, msg, SHM_SIZE);
-    strncpy(shm, protocol, SHM_SIZE);
-    int err = shmdt(shm);
-    
-    if(err < 0) {
-        perror("Erreur lors du détachement de la mémoire partagée");
-        exit(-1);
-    }
-}
+    Initialise la mémoire partagée
 */
+void initShm(void) {
+    CHECK(shm_key = ftok("/tmp",SRV_KEY),"ftok()");
+    CHECK(shared_memory = shmget(shm_key,  sizeof(t_comm), 0666 | IPC_CREAT),"shmget()");
+
+}
 
 /*
     Initialise les messages
@@ -73,8 +60,10 @@ void initMessage(void) {
 }
 
 
-
-void sendMessageToClient(char message[256]) {
+/*
+    Envoie au client (message)
+*/
+void sendMessageToClient_msg(char message[256]) {
     int res;
     message_t msg;
     msg.type = 1;
@@ -84,6 +73,31 @@ void sendMessageToClient(char message[256]) {
     CHECK(res, "Envoi du message impossible\n");
 }
 
+/*
+    Envoie au client (shared memory)
+*/
+void sendMessageToClient(char message[256]) {
+    char* write;
+    write = shmat(shared_memory,NULL, 0);
+    strncpy(write, message,256);
+    CHECK(shmdt(write), "shmdt()");
+}
+
+
+/*
+    Envoie au client (shared memory) | Comm
+*/
+void sendMessageToClient_comm(t_comm comm) { 
+    if (comm.dest == -1) {
+        ack_remain = nbconnexions;
+    } else {
+        ack_remain = 1;
+    }
+
+    t_comm *snd = shmat(shared_memory,NULL, 0);
+    memcpy(snd, &comm,sizeof(t_comm));
+    CHECK(shmdt(snd), "shmdt()");
+}
 
 
 struct carte pioche[NB_PIOCHE];
@@ -204,12 +218,71 @@ int lancerDe(int max) {
     return rand() % max + 1;
 }
 
+void force_close() {
+    printf("Arrêt forcé du programme : plus aucun client connecté. Tube cassé.\n");
+    exit(EXIT_FAILURE);
+}
+
+void addPlayerToConnexions(int pid) {
+    t_connexion c;
+    c.pid = pid;
+    connexions[nbconnexions] = c;
+    nbconnexions++;
+}
+
+void handleACK() {
+    ack_remain--;
+    if (ack_remain == 0) {
+        printf("Tous les clients ont accusé la réception du paquet\n");
+        t_comm *empty;
+        empty = malloc(sizeof(t_comm));
+        t_comm *snd = shmat(shared_memory,NULL, 0);
+        memcpy(snd, empty,sizeof(t_comm));
+        CHECK(shmdt(snd), "shmdt()");
+    }
+}
+
+void handleLogin(t_comm msg) {
+    if (msg.src == 0) {force_close();}
+
+    if (nbconnexions < nbJoueur) {
+        printf("Connexion d'un client > pid : %d\n", msg.src);
+        addPlayerToConnexions(msg.src);
+    } else {
+        t_comm rep;
+        rep.type = ERROR;
+        rep.dest = msg.src;
+        strncpy(rep.msg, "Impossible de vous connecter : le nombre de clients autorisés est dépassé !", 256);
+        sendMessageToClient_comm(rep);
+    }
+}
+
 void *listener() {
     char msg[256];
     createListener();   
     do {
-        read(reader_fifo, msg, sizeof(msg));
-        printf("RX : %s\n",msg);
+        t_comm *comm;
+        comm = malloc(sizeof(t_comm));
+        read(reader_fifo,comm, sizeof(t_comm));
+        switch (comm->type)
+        {
+        case LOGIN:
+            handleLogin(*comm);
+            break;
+        
+        case DEFAULT:
+            printf("RX (%d) : %s\n", comm->src, comm->msg);
+            break;
+        
+        case ACK:
+            handleACK();
+        break;
+
+        default:
+            printf("Message non reconnu\n");
+            break;
+        }
+        //printf("RX : %s\n",msg);
     } while (strcmp(msg, "STOP\n") != 0);
     close(reader_fifo);
 }
@@ -237,12 +310,19 @@ int readline(char *chaine, int length) {
     }
 }
 
+/*
+    Suppression de la mémoire partagée
+*/
+void del_shm(void) {
+    CHECK( shmctl(shared_memory, IPC_RMID, NULL),"shmctl()");
+}
+
 
 int main(int argc, char *argv[]) {
     printf("Bienvenue sur l'interface du serveur\n");
 
     // On récupère le nombre de joueurs
-    int nbJoueur = (questionNbJoueur() - '0'); // conversion des char en int
+    nbJoueur = (questionNbJoueur() - '0'); // conversion des char en int
     while(nbJoueur < 2 || nbJoueur > 4) {
         nbJoueur = questionNbJoueur();
     }
@@ -301,17 +381,26 @@ int main(int argc, char *argv[]) {
     // La gueule des messages se trouve dans le md
 
 
-
-    initMessage();
+    initShm();
+    
     printf("Que voulez-vous envoyez au client ? ");
     char buffer[256];
+    char empty[256];
+    t_comm comm;
     while (strcmp(buffer, "STOP")) {
         printf("> ");
         readline(buffer, 256);
-        sendMessageToClient(buffer);
+        if (strcmp(buffer, empty) != 0) {
+            strncpy(comm.msg, buffer, 256);
+            comm.type = DEFAULT;
+            comm.dest = -1;
+            //sendMessageToClient_msg(buffer);
+            sendMessageToClient_comm(comm);
+        }
     }
     printf("Fin de la lecture\n");
-    msgctl(id_file, IPC_RMID, NULL);
+    del_shm();
+    //msgctl(id_file, IPC_RMID, NULL);
 
     pthread_join(thread_listener, NULL);    
 

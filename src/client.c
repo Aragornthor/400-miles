@@ -14,16 +14,23 @@
 #include <sys/ipc.h>
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
+
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
 #include "../dependencies/carte.h"
 #include "../dependencies/message.h"
 
-#define CHECK(sts, msg) if ((sts)==-1) {perror(msg); exit(-1);}
-#define SRV_KEY 12345
+#include "../dependencies/comm.h"
 
-int writer_fifo, id_file;
-key_t rx_key;
+#define CHECK(sts, msg) if ((sts)==-1) {perror(msg); exit(-1);}
+#define SRV_KEY 1234
+
+
+
+
+int writer_fifo, id_file, shared_memory;
+key_t rx_key, shm_key;
 struct msqid_ds buf;
 int client_id;
 pthread_t thread_reader;
@@ -39,6 +46,11 @@ void init_reader(void) {
 
 }
 
+void init_shm(void) {
+    CHECK(shm_key = ftok("/tmp",SRV_KEY),"ftok()");
+    CHECK(shared_memory = shmget(shm_key, sizeof(t_comm), 0666 | IPC_CREAT),"shmget()");    
+}
+
 
 
 // Communication via mémoire partagée
@@ -51,55 +63,15 @@ int creationMemoire(void) {
         exit(-1);
     }
 }
-/*
-char *  readMessageFromServer(void) {
-    char * shm = shmat(shmNo, NULL, SHM_RDONLY);
-    if(shm < 0) {
-        perror("Erreur lors de l\'allocation de la mémoire partagée");
-    }
-    printf("Message reçu :\n\t%s", shm);
-    int err = shmdt(shm);
-    if(err < 0) {
-        perror("Erreur lors du détachement de la mémoire partagée");
-        exit(-1);
-    }
-}
-*/
-/*
-void *reader() {
-    bool isValid = false;
-    while(isValid == false) {
-        char * msg = readMessageFromServer();
-        printf("MSG = %s\n", msg);
-        char * header = "";
-        strncpy(header, msg, 4);
-        printf("HEADER = %s\n", header);
-        if(strcmp(header, "400M") == 0) {
-            isValid = true;
-        }
-    }
 
-    shmctl(shmNo, IPC_RMID, NULL);
+void sendMessage(comm_type type, char * message) {
+    t_comm* msg;
+    msg = malloc(sizeof(t_comm));
+    msg->type = type;
+    msg->src = getpid();
+    strncpy(msg->msg, message,256);
+    write(writer_fifo, msg, sizeof(t_comm));
 }
-*/
-void displayInformation(int id){
-	struct msqid_ds information;
-
-	CHECK(msgctl(id, IPC_STAT, &information),"msgctl");
-	
-	printf("Clé fournie à msgget : %d\n",id);
-	printf("Nombre actuel d'octets dans la file (non standard) : %ld\n",information.__msg_cbytes);
-	printf("Nombre actuel de messages dans la file : %ld\n",information.msg_qnum);
-	printf("Nombre maximum d'octets autorisés dans la file : %ld\n",information.msg_qnum);
-	printf("PID du dernier msgsnd : %d\n",information.msg_lspid);
-	printf("PID du dernier msgrcv : %d\n",information.msg_lrpid);
-	printf("UID effectif du propriétaire : %d\n",information.msg_perm.uid);
-	printf("GID effectif du propriétaire : %d\n",information.msg_perm.gid);
-	printf("UID effectif du créateur : %d\n",information.msg_perm.cuid);
-	printf("ID effectif du créateur : %d\n",information.msg_perm.cgid);
-	printf("Permissions : %d\n",information.msg_perm.mode);
-}
-
 
 void *reader() {
     init_reader();
@@ -116,6 +88,51 @@ void *reader() {
 
 }
 
+
+void handleData(t_comm data) {
+    if (data.dest == -1 || data.dest == getpid()) {
+        switch (data.type) {
+        case ERROR:
+            printf("Une erreur est survenue : \n%s", data.msg);
+            exit(EXIT_FAILURE);
+            break;
+        
+        default:
+            printf("<SERVEUR>: %s\n", data.msg);
+            break;
+        }
+    }   
+}
+
+
+void *reader_shm() {
+    init_shm();
+    t_comm *comm;
+    comm = malloc(sizeof(t_comm));
+    strncpy(comm->msg, "vide", 256);
+    
+    t_comm tmp;
+    
+    t_comm *empty;
+    empty = malloc(sizeof(t_comm));
+    //char empty[256];
+    while(strcmp(tmp.msg, "STOP") != 0) {
+        comm = shmat(shared_memory,NULL, 0);
+        if (memcmp(comm, empty, sizeof(t_comm)) != 0) {
+            memcpy(&tmp, comm, sizeof(t_comm));
+            handleData(*comm);
+            sendMessage(ACK,"");
+        }
+        CHECK(shmdt(comm), "shmdt()");
+        sleep(1);
+    }
+}
+
+
+
+
+
+
 int main(void) {
     printf("Bienvenue dans le client du 400 miles !\n");
 
@@ -124,17 +141,22 @@ int main(void) {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
     printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
     
-    pthread_create(&thread_reader, NULL, reader, NULL);
+    pthread_create(&thread_reader, NULL, reader_shm, NULL);
 
     init_writer();
+    //login
+    sendMessage(LOGIN, "");
+    printf("<>\n");
+
     char msg[256];
     do {
         fgets(msg, 256, stdin);
-        write(writer_fifo, msg, strlen(msg)+1);
-    } while (strcmp(msg, "STOP") != 0);
+        sendMessage(DEFAULT, msg);
+    } while (strcmp(msg, "STOP\n") != 0);
     close(writer_fifo);
+    pthread_kill(thread_reader, 9);
 
-    pthread_join(thread_reader, NULL);
+    //pthread_join(thread_reader, NULL);
 
     return 0;
 }
