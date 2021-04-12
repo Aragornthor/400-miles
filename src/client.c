@@ -103,7 +103,7 @@ void displayInformation(int id){
 
 void *reader() {
     init_reader();
-    displayInformation(id_file);
+    //displayInformation(id_file);
     char txt[256];
     message_t msg;
     printf("Prêt à recevoir des messages !\n");
