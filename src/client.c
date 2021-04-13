@@ -24,7 +24,7 @@
 #include "../dependencies/comm.h"
 
 #define CHECK(sts, msg) if ((sts)==-1) {perror(msg); exit(-1);}
-#define SRV_KEY 1234
+#define SRV_KEY 18
 
 
 

@@ -25,7 +25,7 @@
 #define false 0
 #define NB_PIOCHE 120
 #define SHM_SIZE 256
-#define SRV_KEY 1234
+#define SRV_KEY 18
 
 #define CHECK(sts,msg) if ((sts) == -1 )  { perror(msg);exit(-1);}
 
