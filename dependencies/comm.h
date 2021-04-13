@@ -7,7 +7,8 @@ typedef enum {
     SCORE,
     ACK,
     PSEUDO,
-    ERROR
+    ERROR,
+    CLOSE_CONNECTION
 } comm_type;
 
 typedef struct {

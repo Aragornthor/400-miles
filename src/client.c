@@ -97,6 +97,11 @@ void handleData(t_comm data) {
             exit(EXIT_FAILURE);
             break;
         
+        case CLOSE_CONNECTION:
+            printf("Fermeture de la connexion au serveur !\n%s\n", data.msg);
+            sleep(2);
+            exit(EXIT_SUCCESS);
+            break;
         default:
             printf("<SERVEUR>: %s\n", data.msg);
             break;
