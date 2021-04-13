@@ -6,6 +6,7 @@ typedef enum {
     ENDGAME,
     SCORE,
     ACK,
+    PSEUDO,
     ERROR
 } comm_type;
 

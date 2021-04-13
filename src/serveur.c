@@ -278,6 +278,12 @@ void *listener() {
             printf("RX (%d) : %s\n", comm->src, comm->msg);
             break;
         
+        case PSEUDO:
+            printf("%d a choisi le pseudo %s\n", comm->src, comm->msg);
+            struct joueur * tmp = findByPid(comm->src);
+
+            break;
+
         case ACK:
             handleACK();
         break;
@@ -323,9 +329,7 @@ void del_shm(void) {
 
 void * findByPid(int p) {
     for(int i = 0; i < nbJoueur; ++i) {
-        printf("i = %d, pid = %d\n", i, joueurs[i].pid);
         if(joueurs[i].pid == p) {
-            printf("RETURN i = %d\n", i);
             return &joueurs[i];
         }
     }

@@ -149,9 +149,17 @@ int main(void) {
     printf("<>\n");
 
     char msg[256];
+    bool isFirstMessage = true;
     do {
-        fgets(msg, 256, stdin);
-        sendMessage(DEFAULT, msg);
+        if(isFirstMessage) {
+            printf("Comment vous appelez vous ? ");
+            isFirstMessage = false;
+            fgets(msg, 256, stdin);
+            sendMessage(PSEUDO, msg);
+        } else {
+            fgets(msg, 256, stdin);
+            sendMessage(DEFAULT, msg);
+        }
     } while (strcmp(msg, "STOP\n") != 0);
     close(writer_fifo);
     pthread_kill(thread_reader, 9);
