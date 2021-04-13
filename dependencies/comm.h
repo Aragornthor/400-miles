@@ -8,7 +8,9 @@ typedef enum {
     ACK,
     PSEUDO,
     ERROR,
-    CLOSE_CONNECTION
+    CLOSE_CONNECTION,
+    CARD,
+    TURN
 } comm_type;
 
 typedef struct {
@@ -16,5 +18,6 @@ typedef struct {
     comm_type type;
     int src;
     int dest;
+    struct carte carte;
 } t_comm;
 
