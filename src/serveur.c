@@ -33,6 +33,7 @@ t_connexion connexions[5];
 int nbconnexions = 0;
 int ack_remain = 0;
 int nbJoueur;
+bool shutdown = false;
 // Communication via messages et tubes
 int reader_fifo, id_file;
 pthread_t thread_listener;
@@ -47,7 +48,11 @@ int shared_memory;
 void initShm(void) {
     CHECK(shm_key = ftok("/tmp",SRV_KEY),"ftok()");
     CHECK(shared_memory = shmget(shm_key,  sizeof(t_comm), 0666 | IPC_CREAT),"shmget()");
-
+    t_comm *empty;
+    empty = malloc(sizeof(t_comm));
+    t_comm *snd = shmat(shared_memory, NULL, 0);
+    memcpy(snd, empty, sizeof(t_comm));
+    CHECK(shmdt(snd), "shmdt()");
 }
 
 /*
@@ -218,6 +223,13 @@ int lancerDe(int max) {
     return rand() % max + 1;
 }
 
+/*
+    Suppression de la mémoire partagée
+*/
+void del_shm(void) {
+    CHECK( shmctl(shared_memory, IPC_RMID, NULL),"shmctl()");
+}
+
 void force_close() {
     printf("Arrêt forcé du programme : plus aucun client connecté. Tube cassé.\n");
     exit(EXIT_FAILURE);
@@ -239,6 +251,10 @@ void handleACK() {
         t_comm *snd = shmat(shared_memory,NULL, 0);
         memcpy(snd, empty,sizeof(t_comm));
         CHECK(shmdt(snd), "shmdt()");
+    }
+    if (shutdown && ack_remain == 0) {
+        del_shm();
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -310,12 +326,40 @@ int readline(char *chaine, int length) {
     }
 }
 
+
+
 /*
-    Suppression de la mémoire partagée
+    Déroulement de la partie
 */
-void del_shm(void) {
-    CHECK( shmctl(shared_memory, IPC_RMID, NULL),"shmctl()");
+void gameHandle(void) {
+    // Attente des joueurs
+    int last = nbconnexions;
+    while (nbconnexions < nbJoueur) {
+        if (last != nbconnexions) {
+            last = nbconnexions;
+            printf("Un joueur s'est connecté, (%d / %d) (%d joueurs restants)\n", nbconnexions, nbJoueur, nbJoueur-nbconnexions);
+        }
+        sleep(1);
+    }
+    printf("Un joueur s'est connecté, (%d / %d) (%d joueurs restants)\n", nbconnexions, nbJoueur, nbJoueur-nbconnexions);
+    // Quand on est bon ...
+    printf("Distribution des cartes...\n");
+
+
 }
+
+
+/*
+    Fermeture de la connexion pour tout le monde
+*/
+void disconnectAll() {
+    printf("Déconnexion des joueurs\n");
+    t_comm disconnect;
+    disconnect.type = CLOSE_CONNECTION;
+    disconnect.dest = -1;
+    strncpy(disconnect.msg, "Déconnexion des clients",256);
+    sendMessageToClient_comm(disconnect);
+} 
 
 
 int main(int argc, char *argv[]) {
@@ -382,7 +426,7 @@ int main(int argc, char *argv[]) {
 
 
     initShm();
-    
+    /*
     printf("Que voulez-vous envoyez au client ? ");
     char buffer[256];
     char empty[256];
@@ -398,11 +442,10 @@ int main(int argc, char *argv[]) {
             sendMessageToClient_comm(comm);
         }
     }
-    printf("Fin de la lecture\n");
-    del_shm();
-    //msgctl(id_file, IPC_RMID, NULL);
-
-    pthread_join(thread_listener, NULL);    
+    */
+    gameHandle();
+    disconnectAll();
+    pause();
 
     return 0;
 }
