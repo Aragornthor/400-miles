@@ -41,6 +41,9 @@ key_t tx_key, shm_key;
 int nr=0;
 // Communication via mémoire partagée
 int shared_memory;
+struct joueur joueurs[0];
+
+void * findByPid(int pid);
 
 /*
     Initialise la mémoire partagée
@@ -239,6 +242,8 @@ void addPlayerToConnexions(int pid) {
     t_connexion c;
     c.pid = pid;
     connexions[nbconnexions] = c;
+
+    joueurs[nbconnexions].pid = pid;
     nbconnexions++;
 }
 
@@ -283,7 +288,7 @@ void *listener() {
         switch (comm->type)
         {
         case LOGIN:
-            handleLogin(*comm);
+            handleLogin(*comm);            
             break;
         
         case DEFAULT:
@@ -348,6 +353,16 @@ void gameHandle(void) {
 
 }
 
+void * findByPid(int p) {
+    for(int i = 0; i < nbJoueur; ++i) {
+        printf("i = %d, pid = %d\n", i, joueurs[i].pid);
+        if(joueurs[i].pid == p) {
+            printf("RETURN i = %d\n", i);
+            return &joueurs[i];
+        }
+    }
+    return NULL;
+} 
 
 /*
     Fermeture de la connexion pour tout le monde
@@ -380,7 +395,10 @@ int main(int argc, char *argv[]) {
     printf("La carte contient %d cases\n", verifierNbCases());
 
     
-    struct joueur joueurs[nbJoueur];
+    for(int i = 0; i < nbJoueur; ++i) {
+        struct joueur tmp;
+        joueurs[i] = tmp;
+    }
 
     bool ordre[nbJoueur];
     for (int i = 0; i<nbJoueur; i++) {

@@ -1,4 +1,5 @@
-struct joueur{
+struct joueur {
+    int pid;
     int ordre;
     char * pseudo;
     bool connected;
