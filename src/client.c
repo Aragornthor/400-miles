@@ -34,9 +34,9 @@ key_t rx_key, shm_key;
 struct msqid_ds buf;
 int client_id;
 pthread_t thread_reader;
-struct carte deck[6];
-struct carte place[120];
-struct carte temp;
+carte deck[6];
+carte place[120];
+carte temp;
 int nbCartes = 0, nbCartesPlacees = 0;
 bool turn = false, endgame = false;
 int traveled = 0;
@@ -147,7 +147,7 @@ void *reader() {
 /*
     Ajoute la carte dans le deck du joueur (ou sur son jeu si ça vient d'un joueur)
 */
-void addCardsToDeck(struct carte carte, int src) {
+void addCardsToDeck(carte carte, int src) {
     if (src == 0 && nbCartes < 6) {
         // Remplissage des cartes
         deck[nbCartes] = carte;
@@ -236,7 +236,7 @@ void *reader_shm() {
 *   carte: carte à envoyer
 *   dest: destination de la carte (peut être l'identifiant du joueur / 0 pour le jeu du joueur / -1 pour la pioche)
 */
-void sendCardToServer(struct carte carte, int dest) {
+void sendCardToServer(carte carte, int dest) {
     t_comm send_back;
     send_back.dest = dest;
     send_back.carte = carte;
@@ -249,7 +249,7 @@ void sendCardToServer(struct carte carte, int dest) {
     carte: carte en type carte...
     renvoie : booléen pour dire si la carte a été acceptée ou refusée
 */
-bool playcard(struct carte carte) {
+bool playcard(carte carte) {
     // on joue la carte
     int target = 0;
 
@@ -315,11 +315,29 @@ void throw_card() {
         send_back.carte = temp;
     } else {
         // On envoie la carte au serveur, en plaçant temp dans le tableau
-        send_back.carte = deck[num];
-        deck[num] = temp;
+        send_back.carte = deck[num-1];
+        deck[num-1] = temp;
     }
     sendComm(send_back);
     printf("La carte a été retournée au serveur !\n");
+}
+
+void printStatus(void) {
+    if (slowed) {
+        printf("- Ralenti\n");
+    }
+    if (accident) {
+        printf("- Accident\n");
+    }
+    if (stopped) {
+        printf("- Stoppé\n");
+    }
+    if (tire) {
+        printf("- Pneu Crevé\n");
+    }
+    if (fuel) {
+        printf("- A court d'essence\n");
+    }
 }
 
 /*
@@ -341,10 +359,16 @@ void handleGame(void) {
     while (!endgame) {
         printf("En Attente de votre tour ...\n");
         while(!turn) {
+            if (endgame) {break;}
             sleep(1);
         }
+        if (endgame) {break;}
         printf("C'est à votre tour !\n");
         printf("Votre statut : %s\n");
+
+        printStatus();
+
+        printf("Votre distance parcourue :\n%d Miles\n", traveled);
 
         printf("Vos cartes :\n");
         for (int i = 0; i<nbCartes; i++) {
@@ -377,9 +401,9 @@ void handleGame(void) {
 
             default:
                 // on joue une carte normale
-                status = playcard(deck[rep]);
+                status = playcard(deck[rep-1]);
                 if (status)
-                    deck[rep] = temp;
+                    deck[rep-1] = temp;
                 break;
             }
         }
@@ -390,6 +414,9 @@ void handleGame(void) {
         turn = false;
         usleep(250000);
     }
+
+    printf("Un joueur a gagné la partie ...\n");
+    
     
 }
 

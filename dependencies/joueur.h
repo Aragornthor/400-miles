@@ -18,5 +18,7 @@ struct joueur {
 
     bool isStun;
     void * stunningCarte;
+
+    int traveled;
 };
 

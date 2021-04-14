@@ -18,6 +18,6 @@ typedef struct {
     comm_type type;
     int src;
     int dest;
-    struct carte carte;
+    carte carte;
 } t_comm;
 

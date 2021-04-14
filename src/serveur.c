@@ -46,6 +46,14 @@ struct joueur joueurs[0];
 // comm
 bool answered = false;
 
+// défausse
+carte pioche[NB_PIOCHE];
+// sans cette variable totalement inutile, on a un FUCKING segfault !   
+carte debug[1];
+carte defausse[NB_PIOCHE];
+int nb_defausse = 0;
+
+
 void * findByPid(int pid);
 
 /*
@@ -110,13 +118,11 @@ void sendMessageToClient_comm(t_comm comm) {
     CHECK(shmdt(snd), "shmdt()");
 }
 
-struct carte defausse[NB_PIOCHE];
-int nb_defausse = 0;
-struct carte pioche[NB_PIOCHE];
 
 
-struct carte creerCarte(char * nom, int type, int move, char * desc, int ident) {
-    struct carte tmp;
+
+carte creerCarte(char * nom, int type, int move, char * desc, int ident) {
+    carte tmp;
     strncpy(tmp.nom, nom, 256);
     //tmp.nom = nom;
     tmp.type = type;
@@ -132,7 +138,7 @@ void shufflePioche(int nbShuffle) {
         for(int i = 0; i < (NB_PIOCHE / 2); ++i) {
             int ran = rand() % NB_PIOCHE + 1;
             
-            struct carte tmp = pioche[i];
+            carte tmp = pioche[i];
             pioche[i] = pioche[ran];
             pioche[ran] = tmp;
         }
@@ -148,7 +154,7 @@ void genererCartes(void) {
         } else if(i < 60) {
             pioche[i] = creerCarte("75 miles", MOVEMENT, 75, "Carte pour avancer de 3 cases",0);
         } else if(i < 65) {
-            pioche[i] = creerCarte("100 miles", MOVEMENT, 100, "Carte pour avancer de 4 cases",0);
+            pioche[i] = creerCarte("100 miles", MOVEMENT, 400, "Carte pour avancer de 4 cases",0);
         } else if(i < 66) {
             pioche[i] = creerCarte("As du volant", UNIQUE, 0, "Carte empêchant les accidents",1);
         } else if(i < 67) {
@@ -299,6 +305,14 @@ void handleRxCard(t_comm rx) {
     case 0:
         // pour le client...
         printf("<> Carte posée : %s (%s)\n", rx.carte.nom, rx.carte.description);
+        // On ajoute la distance
+        if (rx.carte.type == MOVEMENT) {
+            for (int i = 0; i<nbJoueur; i++) {
+                if (rx.src == joueurs[i].connexion.pid) {
+                    joueurs[i].traveled += rx.carte.movement;
+                }
+            }
+        }
         break;
     
     default:
@@ -406,6 +420,8 @@ void gameHandle(void) {
     debut = 120 - (nbJoueur*6);
 
     // Jeu en temp réél
+    bool victory = false;
+    int id_victory = -1;
     while (true) {
         for (int i = 0; i<nbJoueur; i++) {
             // Tour du joueur...
@@ -418,11 +434,26 @@ void gameHandle(void) {
             sendMessageToClient_comm(snd);
             while(!answered) {sleep(1);}
             printf("Le joueur à répondu\n");
+            
+            if (joueurs[i].traveled >= 400) {
+                victory = true;
+                id_victory = i;
+                break;
+            }
             answered=false;
         }
+        if (victory) {
+            break;
+        }     
     }
+    // On envoie au client comme quoi y'a une victoire
+    t_comm msg;
+    msg.type = ENDGAME;
+    msg.dest = -1;
+    sendMessageToClient_comm(msg);
+    
 
-
+    printf("On a une victoire\n");
 }
 
 void * findByPid(int p) {
@@ -449,7 +480,6 @@ void disconnectAll() {
 
 int main(int argc, char *argv[]) {
     printf("Bienvenue sur l'interface du serveur\n");
-
     // On récupère le nombre de joueurs
     nbJoueur = (questionNbJoueur() - '0'); // conversion des char en int
     while(nbJoueur < 2 || nbJoueur > 4) {
