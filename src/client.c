@@ -38,8 +38,11 @@ carte deck[6];
 carte place[120];
 carte temp;
 int nbCartes = 0, nbCartesPlacees = 0;
-bool turn = false, endgame = false;
+bool turn = false, endgame = false, ok = false, fault = false;
 int traveled = 0;
+char * message_reponse;
+int nbj = 0;
+
 
 // Valeurs du jeu
 bool stopped = true, accident = false, slowed = false, fuel = false, tire = false;
@@ -154,9 +157,31 @@ void addCardsToDeck(carte carte, int src) {
         //printf("Vous avez reçu la carte %s (%s).\n", deck[nbCartes].nom, deck[nbCartes].description);
         nbCartes++;
     } else {
-        // Récupération d'un joueur
-        // OSEF
-        printf("osef\n");
+        printf("Vous avez reçu du joueur %d la carte %s (%s)\n", src, carte.nom, carte.description);
+        switch (carte.ident){
+        case 9:
+            stopped = true;
+            break;
+        
+        case 10:
+            tire = true;
+            break;
+
+        case 11:
+            fuel = true;
+            break;
+        
+        case 12:
+            slowed = true;
+            break;
+        
+        case 13:
+            accident = true;
+            break;
+        
+        default:
+            break;
+        }
     }
 }
 
@@ -192,9 +217,22 @@ void handleData(t_comm data) {
             endgame = true;
             break;
         
+        case PSEUDO:
+            nbj = data.src;
+            ok = true;
+            break;
+        
         case TURN:
             turn = true;
             temp = data.carte;
+            break;
+
+        case OK:
+            ok = true;
+            break;
+        
+        case FAULT:
+            fault = true;
             break;
 
         default:
@@ -252,10 +290,10 @@ void sendCardToServer(carte carte, int dest) {
 bool playcard(carte carte) {
     // on joue la carte
     int target = 0;
-
+    int type = 1;
     if (carte.type == MOVEMENT) {
-        if (stopped || accident || tire) {
-            printf("Vous ne pouvez pas joueur cette carte, vous êtes stoppé !\n");
+        if (fuel || stopped || accident || tire || (slowed && carte.movement > 50)) {
+            printf("Vous ne pouvez pas joueur cette carte, vous êtes stoppé ou ralenti !\n");
             return false;
         }
         traveled+=carte.movement;
@@ -289,10 +327,46 @@ bool playcard(carte carte) {
         }
     } else {
         // carte mauvaise
+        // on demande au serveur les joueurs...
+        type = 0;
+        t_comm msg;
+        msg.type = PSEUDO;
+        sendComm(msg);
+        ok = false;
+        while (!ok) {usleep(250000);}
+
+        printf("Joueurs :\n");
+        for (int i = 1; i<nbj; i++) {
+            printf("- Joueur %d\n", i);
+        }
+
+        printf("Entrez le numéro du joueur à qui envoyer la carte ?\n");
+        bool success = false;
+        while (!success) {
+            printf("> ");
+            char * tmp;    
+            int nb = -1;
+            while (nb <= -1 || nb > nbj-1) {
+                tmp = malloc(sizeof(char)*256);
+                readline(tmp, 256);
+                nb = atoi(tmp);
+            }
+            if (nb != 0) {
+                sendCardToServer(carte, nb);
+                while (!ok && !fault) {usleep(250000);}
+                if (ok) {success = true;} else {printf("Le client séléctionné ne peux pas recevoir la carte, car il est déjà bloqué ou a une carte bloquante.\n");}
+            } else {success = true;}
+            
+        }
+        
+        printf("La carte à bien été envoyée au joueur !\n");
+       
     }
-    sendCardToServer(carte,target);
-    place[nbCartesPlacees] = carte;
-    nbCartesPlacees++;   
+    if (type != 0) {
+        sendCardToServer(carte,target);
+        place[nbCartesPlacees] = carte;
+        nbCartesPlacees++;
+    }   
     return true;
 }   
 
@@ -425,7 +499,7 @@ void handleGame(void) {
 
 int main(void) {
     printf("Bienvenue dans le client du 400 miles !\n");
-
+    message_reponse = malloc(sizeof(char)*1000);
     // On récupère la taille du terminal
     struct winsize ws;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);

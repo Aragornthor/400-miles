@@ -8,6 +8,8 @@ typedef enum {
     ACK,
     PSEUDO,
     ERROR,
+    OK,
+    FAULT,
     CLOSE_CONNECTION,
     CARD,
     TURN

@@ -16,6 +16,8 @@ struct joueur {
     bool isIncrevable;
     bool isPrioritaire;
 
+    bool stopped, accident, slowed, fuel, tire;
+
     bool isStun;
     void * stunningCarte;
 

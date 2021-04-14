@@ -291,15 +291,76 @@ void handleLogin(t_comm msg) {
     }
 }
 
+bool sendCardToClient(carte carte, int lid, int src) {
+    int choices[nbJoueur-1];
+    int cpt = 0;
+    for (int i = 0; i<nbJoueur; i++) {
+        if (joueurs[i].connexion.pid != src) {
+            choices[cpt] = i;
+            cpt++;
+        }
+    }
+
+    struct joueur chosen = joueurs[choices[lid-1]];
+    
+    switch (carte.ident){
+    case 9:
+        if (chosen.stopped || chosen.isPrioritaire) {return false;}
+        chosen.stopped = true;
+        break;
+    
+    case 10:
+        if (chosen.tire || chosen.isIncrevable) {return false;}
+        chosen.tire = true;
+        break;
+    
+    case 11:
+        if (chosen.fuel || chosen.isCitern) {return false;}
+        chosen.fuel = true;
+        break;
+    
+    case 12:
+        if (chosen.isPrioritaire || chosen.slowed) {return false;}
+        chosen.slowed = true;
+        break;
+    
+    case 13:
+        if (chosen.accident || chosen.isAs) {return false;}
+        chosen.accident = true;
+        break;
+
+    default:
+        break;
+    }
+
+    t_comm msg;
+    msg.carte = carte;
+    msg.src = src;
+    msg.dest = chosen.connexion.pid;
+    msg.type = CARD;
+    sendMessageToClient_comm(msg);
+
+    return true;
+}
+
 void handleRxCard(t_comm rx) {
     int dest = rx.dest;
-    switch (dest)
-    {
+    int playerindex = 0;
+    struct joueur tx;
+    for (int i = 0; i<nbJoueur; i++) {
+        if (rx.src == joueurs[i].connexion.pid) {
+            tx = joueurs[i];
+            playerindex = i;
+        }
+    }
+
+    switch (dest) {
     case -1:
         // pr la défausse
         defausse[nb_defausse] = rx.carte;
         nb_defausse++;
         printf("Une carte a été ajoutée à la défausse :\n%s (%s)\n", rx.carte.nom, rx.carte.description);
+        answered = true;
         break;
     
     case 0:
@@ -307,20 +368,85 @@ void handleRxCard(t_comm rx) {
         printf("<> Carte posée : %s (%s)\n", rx.carte.nom, rx.carte.description);
         // On ajoute la distance
         if (rx.carte.type == MOVEMENT) {
-            for (int i = 0; i<nbJoueur; i++) {
-                if (rx.src == joueurs[i].connexion.pid) {
-                    joueurs[i].traveled += rx.carte.movement;
-                }
+            tx.traveled += rx.carte.movement;
+        } else if (rx.carte.type == UNIQUE) {
+            switch (rx.carte.ident) {
+            case 1:
+                tx.isAs = true;
+                break;
+            
+            case 2:
+                tx.isIncrevable = true;
+                break;
+            
+            case 3:
+                tx.isCitern = true;
+                break;
+            
+            case 4:
+                tx.isPrioritaire = true;
+                break;
+
+            default:
+                break;
+            }
+        } else if (rx.carte.type == AVANTAGE) {
+            switch (rx.carte.ident) {
+            case 5:
+                tx.stopped = false;
+                break;
+
+            case 6:
+                tx.accident = false;
+                break;
+            
+            case 7:
+                tx.tire = false;
+                break;
+            
+            case 8:
+                tx.fuel = false;
+                break;
+            
+            case 14:
+                tx.slowed = false;
+                break;
+            
+            default:
+                break;
             }
         }
+        answered = true;
         break;
     
     default:
         // pour un client en particulier
+        if (!sendCardToClient(rx.carte,rx.dest, rx.src)) {
+            sleep(1);
+            t_comm comm;
+            comm.dest = rx.src;
+            comm.type = FAULT;
+            sendMessageToClient_comm(comm);
+        } else {
+            sleep(1);
+            t_comm comm;
+            comm.dest = rx.src;
+            comm.type = OK;
+            sendMessageToClient_comm(comm);
+            answered = true;
+        }
         break;
     }
-}
+    joueurs[playerindex] = tx;
 
+}
+void sendPseudo(int dest) {
+    t_comm comm;
+    comm.type = PSEUDO;
+    comm.dest = dest;
+    comm.src = nbJoueur;
+    sendMessageToClient_comm(comm);
+}
 
 void *listener() {
     char msg[256];
@@ -340,8 +466,12 @@ void *listener() {
             break;
         
         case CARD:
-            answered = true;
+            
             handleRxCard(*comm);
+            break;
+
+        case PSEUDO:
+            sendPseudo(comm->src);
             break;
 
         case ACK:
@@ -433,9 +563,10 @@ void gameHandle(void) {
             snd.src = 0;
             sendMessageToClient_comm(snd);
             while(!answered) {sleep(1);}
-            printf("Le joueur à répondu\n");
+            printf("Le joueur à répondu\nDATA:\nTraveled: %d\n", joueurs[i].traveled);
             
             if (joueurs[i].traveled >= 400) {
+                printf("\t\t\tDEPASSE\n");
                 victory = true;
                 id_victory = i;
                 break;
