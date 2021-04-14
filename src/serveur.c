@@ -43,6 +43,9 @@ int nr=0;
 int shared_memory;
 struct joueur joueurs[0];
 
+// comm
+bool answered = false;
+
 void * findByPid(int pid);
 
 /*
@@ -107,7 +110,8 @@ void sendMessageToClient_comm(t_comm comm) {
     CHECK(shmdt(snd), "shmdt()");
 }
 
-
+struct carte defausse[NB_PIOCHE];
+int nb_defausse = 0;
 struct carte pioche[NB_PIOCHE];
 
 
@@ -281,6 +285,29 @@ void handleLogin(t_comm msg) {
     }
 }
 
+void handleRxCard(t_comm rx) {
+    int dest = rx.dest;
+    switch (dest)
+    {
+    case -1:
+        // pr la défausse
+        defausse[nb_defausse] = rx.carte;
+        nb_defausse++;
+        printf("Une carte a été ajoutée à la défausse :\n%s (%s)\n", rx.carte.nom, rx.carte.description);
+        break;
+    
+    case 0:
+        // pour le client...
+        printf("<> Carte posée : %s (%s)\n", rx.carte.nom, rx.carte.description);
+        break;
+    
+    default:
+        // pour un client en particulier
+        break;
+    }
+}
+
+
 void *listener() {
     char msg[256];
     createListener();   
@@ -296,6 +323,11 @@ void *listener() {
         
         case DEFAULT:
             printf("RX (%d) : %s\n", comm->src, comm->msg);
+            break;
+        
+        case CARD:
+            answered = true;
+            handleRxCard(*comm);
             break;
 
         case ACK:
@@ -347,7 +379,7 @@ void gameHandle(void) {
             last = nbconnexions;
             printf("Un joueur s'est connecté, (%d / %d) (%d joueurs restants)\n", nbconnexions, nbJoueur, nbJoueur-nbconnexions);
         }
-        sleep(1);
+        usleep(250000);
     }
     printf("Un joueur s'est connecté, (%d / %d) (%d joueurs restants)\n", nbconnexions, nbJoueur, nbJoueur-nbconnexions);
     // Quand on est bon ...
@@ -367,10 +399,27 @@ void gameHandle(void) {
             snd.src = 0;
             sendMessageToClient_comm(snd);
             printf("Envoi de la carte %s\n", pioche[j+debut].nom);
-            while(ack_remain != 0) {sleep(1);}
+            while(ack_remain != 0) {usleep(250000);}
         }
         debut+=6;
-        
+    }
+    debut = 120 - (nbJoueur*6);
+
+    // Jeu en temp réél
+    while (true) {
+        for (int i = 0; i<nbJoueur; i++) {
+            // Tour du joueur...
+            t_comm snd;
+            snd.type = TURN;
+            snd.carte = pioche[debut];
+            debut--;
+            snd.dest = joueurs[i].connexion.pid;
+            snd.src = 0;
+            sendMessageToClient_comm(snd);
+            while(!answered) {sleep(1);}
+            printf("Le joueur à répondu\n");
+            answered=false;
+        }
     }
 
 

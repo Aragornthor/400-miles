@@ -45,6 +45,33 @@ int traveled = 0;
 bool stopped = true, accident = false, slowed = false, fuel = false, tire = false;
 bool good_driver = false, fuel_master = false, prior = false, good_tire = false;
 
+
+
+void emptybuff() {
+    int c = 0;
+    while (c!='\n' && c!=EOF) {
+        c = getchar();
+    }
+}
+
+int readline(char *chaine, int length) {
+    char *start = NULL;
+    if (fgets(chaine, length, stdin) != NULL) {
+        start = strchr(chaine, '\n');
+        if (start != NULL) {
+            *start = '\0';
+        }else {
+            emptybuff();
+        }
+        return 1;
+    } else {
+        emptybuff();
+        return 0;
+    }
+}
+
+
+
 /*
     Initialisation du fifo pour l'envoi de données client => serveur
 */
@@ -200,7 +227,7 @@ void *reader_shm() {
             
         }
         CHECK(shmdt(comm), "shmdt()");
-        sleep(1);
+        usleep(250000);
     }
 }
 
@@ -276,7 +303,8 @@ void throw_card() {
     printf("Quel numéro de carte souhaitez-vous jeter ?\n");
     int num = 0;
     while (num <= 0 || num > 7) {
-        scanf("> %d", &num);
+        printf(">");
+        scanf(" %d", &num);
     }
 
     t_comm send_back;
@@ -306,7 +334,7 @@ void handleGame(void) {
             actual = nbCartes;
             printf("Cartes : %d / %d\n", nbCartes, 6);
         }
-        sleep(1);
+        usleep(250000);
     }
 
     
@@ -326,57 +354,43 @@ void handleGame(void) {
         printf("8 - Jeter une carte\n");
 
         int rep = 0; 
-        while (rep <= 0 || rep > 8) {
-            scanf("> %d", &rep);
+        bool status = false;
+        while (!status) {
+            rep = 0;
+            while (rep <= 0 || rep > 8) {
+            printf("> ");
+            char * tmp;
+            readline(tmp, 256);
+            rep = atoi(tmp);
         }
-        
-        switch (rep)
-        {
-        case 8:
-            throw_card();
-            break;
-        
-        case 7:
-            // on place la carte récupérée 
-            playcard(temp);
-            break;
+            switch (rep)
+            {
+            case 8:
+                throw_card();
+                status = true;
+                break;
+            
+            case 7:
+                // on place la carte récupérée 
+                status = playcard(temp);
+                break;
 
-        default:
-            // on joue une carte normale
-            playcard(deck[rep]);
-            deck[rep] = temp;
-            break;
+            default:
+                // on joue une carte normale
+                status = playcard(deck[rep]);
+                if (status)
+                    deck[rep] = temp;
+                break;
+            }
         }
+        
 
 
 
         turn = false;
-        sleep(1);
+        usleep(250000);
     }
     
-}
-
-void emptybuff() {
-    int c = 0;
-    while (c!='\n' && c!=EOF) {
-        c = getchar();
-    }
-}
-
-int readline(char *chaine, int length) {
-    char *start = NULL;
-    if (fgets(chaine, length, stdin) != NULL) {
-        start = strchr(chaine, '\n');
-        if (start != NULL) {
-            *start = '\0';
-        }else {
-            emptybuff();
-        }
-        return 1;
-    } else {
-        emptybuff();
-        return 0;
-    }
 }
 
 
