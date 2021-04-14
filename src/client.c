@@ -124,10 +124,12 @@ void addCardsToDeck(struct carte carte, int src) {
     if (src == 0 && nbCartes < 6) {
         // Remplissage des cartes
         deck[nbCartes] = carte;
+        //printf("Vous avez reçu la carte %s (%s).\n", deck[nbCartes].nom, deck[nbCartes].description);
         nbCartes++;
     } else {
         // Récupération d'un joueur
         // OSEF
+        printf("osef\n");
     }
 }
 
@@ -172,6 +174,7 @@ void handleData(t_comm data) {
             printf("<SERVEUR>: %s\n", data.msg);
             break;
         }
+        sendMessage(ACK,"");
     }   
 }
 
@@ -194,7 +197,7 @@ void *reader_shm() {
         if (memcmp(comm, empty, sizeof(t_comm)) != 0) {
             memcpy(&tmp, comm, sizeof(t_comm));
             handleData(*comm);
-            sendMessage(ACK,"");
+            
         }
         CHECK(shmdt(comm), "shmdt()");
         sleep(1);
@@ -351,10 +354,31 @@ void handleGame(void) {
         sleep(1);
     }
     
-    
-
-
 }
+
+void emptybuff() {
+    int c = 0;
+    while (c!='\n' && c!=EOF) {
+        c = getchar();
+    }
+}
+
+int readline(char *chaine, int length) {
+    char *start = NULL;
+    if (fgets(chaine, length, stdin) != NULL) {
+        start = strchr(chaine, '\n');
+        if (start != NULL) {
+            *start = '\0';
+        }else {
+            emptybuff();
+        }
+        return 1;
+    } else {
+        emptybuff();
+        return 0;
+    }
+}
+
 
 
 
@@ -369,25 +393,21 @@ int main(void) {
     pthread_create(&thread_reader, NULL, reader_shm, NULL);
 
     init_writer();
+    // Avant d'envoyer notre connexion au serveur, on demande gentillement le pseudo
+    char pseudo[256];
+    printf("Pour vous connecter, vous devez entrer un pseudo !\nComment vous appelez vous ? ");
+    readline(pseudo, 256);
+    
+
     //login
-    sendMessage(LOGIN, "");
+    sendMessage(LOGIN, pseudo);
     printf("<>\n");
 
     char msg[256];
     bool isFirstMessage = true;
  
     // TODO : Attention, changer ici, ça ne va pas dans le handlegame !
-    do {
-        if(isFirstMessage) {
-            printf("Comment vous appelez vous ? ");
-            isFirstMessage = false;
-            fgets(msg, 256, stdin);
-            sendMessage(PSEUDO, msg);
-        } else {
-            fgets(msg, 256, stdin);
-            sendMessage(DEFAULT, msg);
-        }
-    } while (strcmp(msg, "STOP\n") != 0);
+    handleGame();
     close(writer_fifo);
     pthread_kill(thread_reader, 9);
 

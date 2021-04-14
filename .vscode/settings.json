@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "connexion.h": "c",
+        "carte.h": "c",
+        "map.h": "c",
+        "joueur.h": "c"
+    }
+}

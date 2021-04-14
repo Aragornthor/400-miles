@@ -13,13 +13,13 @@
 #include <sys/msg.h>
 #include <pthread.h>
 
+
 #include "../dependencies/map.h"
 #include "../dependencies/joueur.h"
 #include "../dependencies/carte.h"
 #include "../dependencies/message.h"
-
 #include "../dependencies/comm.h"
-#include "../dependencies/connexion.h"
+
 
 #define true 1
 #define false 0
@@ -238,12 +238,15 @@ void force_close() {
     exit(EXIT_FAILURE);
 }
 
-void addPlayerToConnexions(int pid) {
+void addPlayerToConnexions(int pid, char pseudo[256]) {
     t_connexion c;
     c.pid = pid;
+    struct joueur tmp;
+    tmp.connected = true;
+    tmp.connexion = c;
+    strncpy(tmp.pseudo, pseudo,256);
     connexions[nbconnexions] = c;
-
-    joueurs[nbconnexions].pid = pid;
+    joueurs[nbconnexions] = tmp;
     nbconnexions++;
 }
 
@@ -267,8 +270,8 @@ void handleLogin(t_comm msg) {
     if (msg.src == 0) {force_close();}
 
     if (nbconnexions < nbJoueur) {
-        printf("Connexion d'un client > pid : %d\n", msg.src);
-        addPlayerToConnexions(msg.src);
+        printf("Connexion d'un client > pid : %d | nom d'utilisateur : %s\n", msg.src, msg.msg);
+        addPlayerToConnexions(msg.src, msg.msg);
     } else {
         t_comm rep;
         rep.type = ERROR;
@@ -293,12 +296,6 @@ void *listener() {
         
         case DEFAULT:
             printf("RX (%d) : %s\n", comm->src, comm->msg);
-            break;
-        
-        case PSEUDO:
-            printf("%d a choisi le pseudo %s\n", comm->src, comm->msg);
-            struct joueur * tmp = findByPid(comm->src);
-
             break;
 
         case ACK:
@@ -355,6 +352,26 @@ void gameHandle(void) {
     printf("Un joueur s'est connecté, (%d / %d) (%d joueurs restants)\n", nbconnexions, nbJoueur, nbJoueur-nbconnexions);
     // Quand on est bon ...
     printf("Distribution des cartes...\n");
+
+    // On va envoyer les cartes aux clients
+    int debut = 120 - (nbJoueur*6);
+    
+    for (int i = 0; i<nbJoueur; i++) {
+        printf("Envoi de cartes au joueur %s (%d)\n", joueurs[i].pseudo, joueurs[i].connexion.pid);
+        for (int j = 0; j<6; j++) {
+            t_comm snd;
+            snd.carte = pioche[j+debut];
+            snd.dest = joueurs[i].connexion.pid;
+            snd.type = CARD;
+            strncpy(snd.msg, "Carte !",256);
+            snd.src = 0;
+            sendMessageToClient_comm(snd);
+            printf("Envoi de la carte %s\n", pioche[j+debut].nom);
+            while(ack_remain != 0) {sleep(1);}
+        }
+        debut+=6;
+        
+    }
 
 
 }
@@ -466,8 +483,9 @@ int main(int argc, char *argv[]) {
     }
     */
     gameHandle();
-    disconnectAll();
     pause();
 
+    disconnectAll();
+    
     return 0;
 }
