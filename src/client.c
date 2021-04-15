@@ -27,7 +27,7 @@
 #define SRV_KEY 19
 
 
-
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int writer_fifo, id_file, shared_memory;
 key_t rx_key, shm_key;
@@ -205,7 +205,7 @@ void handleData(t_comm data) {
             break;
         
         case CARD:
-            printf("Réception d'une carte de la part du serveur ! (%s)\n", data.carte.nom);
+            printf("Vous avez reçu : %s\n", data.carte.nom);
             addCardsToDeck(data.carte, data.src);
             break;
         
@@ -229,9 +229,11 @@ void handleData(t_comm data) {
 
         case OK:
             ok = true;
+            fault = false;
             break;
         
         case FAULT:
+            ok = false;
             fault = true;
             break;
 
@@ -328,13 +330,14 @@ bool playcard(carte carte) {
     } else {
         // carte mauvaise
         // on demande au serveur les joueurs...
+        
         type = 0;
         t_comm msg;
         msg.type = PSEUDO;
         sendComm(msg);
         ok = false;
         while (!ok) {usleep(250000);}
-
+        ok = false;
         printf("Joueurs :\n");
         for (int i = 1; i<nbj; i++) {
             printf("- Joueur %d\n", i);
@@ -343,6 +346,7 @@ bool playcard(carte carte) {
         printf("Entrez le numéro du joueur à qui envoyer la carte ?\n");
         bool success = false;
         while (!success) {
+            success = false;
             printf("> ");
             char * tmp;    
             int nb = -1;
@@ -354,8 +358,9 @@ bool playcard(carte carte) {
             if (nb != 0) {
                 sendCardToServer(carte, nb);
                 while (!ok && !fault) {usleep(250000);}
-                if (ok) {success = true;} else {printf("Le client séléctionné ne peux pas recevoir la carte, car il est déjà bloqué ou a une carte bloquante.\n");}
-            } else {success = true;}
+                bool localok = ok;
+                if (ok) {ok = false;success = true;} else {printf("Le client séléctionné ne peux pas recevoir la carte, car il est déjà bloqué ou a une carte bloquante.\n"); fault = false;}
+            } else {sendCardToServer(carte, -1);success = true;}
             
         }
         
@@ -489,7 +494,13 @@ void handleGame(void) {
         usleep(250000);
     }
 
-    printf("Un joueur a gagné la partie ...\n");
+    if (traveled >= 400) {
+        printf("Félicitations ! Vous avez gagné la partie ! ");
+    } else {
+        printf("Un joueur à gagné la partie. ");
+    }
+    printf("Vous pouvez consulter votre score et celui des autres joueurs sur le serveur de Jeu\n");
+    //printf("Un joueur a gagné la partie ...\n");
     
     
 }
@@ -503,7 +514,7 @@ int main(void) {
     // On récupère la taille du terminal
     struct winsize ws;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
-    printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
+    //printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
     
     pthread_create(&thread_reader, NULL, reader_shm, NULL);
 

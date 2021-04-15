@@ -109,6 +109,8 @@ void sendMessageToClient(char message[256]) {
 void sendMessageToClient_comm(t_comm comm) { 
     if (comm.dest == -1) {
         ack_remain = nbconnexions;
+    } else if (comm.dest == 0) {
+        ack_remain = 0;
     } else {
         ack_remain = 1;
     }
@@ -118,6 +120,11 @@ void sendMessageToClient_comm(t_comm comm) {
     CHECK(shmdt(snd), "shmdt()");
 }
 
+void clearShm(void) {
+    t_comm comm;
+    comm.dest = 0;
+    sendMessageToClient_comm(comm);
+}
 
 
 
@@ -154,7 +161,7 @@ void genererCartes(void) {
         } else if(i < 60) {
             pioche[i] = creerCarte("75 miles", MOVEMENT, 75, "Carte pour avancer de 3 cases",0);
         } else if(i < 65) {
-            pioche[i] = creerCarte("100 miles", MOVEMENT, 400, "Carte pour avancer de 4 cases",0);
+            pioche[i] = creerCarte("100 miles", MOVEMENT, 100, "Carte pour avancer de 4 cases",0);
         } else if(i < 66) {
             pioche[i] = creerCarte("As du volant", UNIQUE, 0, "Carte empêchant les accidents",1);
         } else if(i < 67) {
@@ -263,7 +270,7 @@ void addPlayerToConnexions(int pid, char pseudo[256]) {
 void handleACK() {
     ack_remain--;
     if (ack_remain == 0) {
-        printf("Tous les clients ont accusé la réception du paquet\n");
+        //printf("Tous les clients ont accusé la réception du paquet\n");
         t_comm *empty;
         empty = malloc(sizeof(t_comm));
         t_comm *snd = shmat(shared_memory,NULL, 0);
@@ -302,7 +309,7 @@ bool sendCardToClient(carte carte, int lid, int src) {
     }
 
     struct joueur chosen = joueurs[choices[lid-1]];
-    
+    int chx_answ = choices[lid-1];
     switch (carte.ident){
     case 9:
         if (chosen.stopped || chosen.isPrioritaire) {return false;}
@@ -332,7 +339,7 @@ bool sendCardToClient(carte carte, int lid, int src) {
     default:
         break;
     }
-
+    joueurs[chx_answ] = chosen;
     t_comm msg;
     msg.carte = carte;
     msg.src = src;
@@ -359,7 +366,7 @@ void handleRxCard(t_comm rx) {
         // pr la défausse
         defausse[nb_defausse] = rx.carte;
         nb_defausse++;
-        printf("Une carte a été ajoutée à la défausse :\n%s (%s)\n", rx.carte.nom, rx.carte.description);
+        printf("Une carte a été ajoutée à la défausse : %s\n", rx.carte.nom, rx.carte.description);
         answered = true;
         break;
     
@@ -423,17 +430,25 @@ void handleRxCard(t_comm rx) {
         // pour un client en particulier
         if (!sendCardToClient(rx.carte,rx.dest, rx.src)) {
             sleep(1);
+            clearShm();
+            sleep(2);
             t_comm comm;
             comm.dest = rx.src;
             comm.type = FAULT;
             sendMessageToClient_comm(comm);
+            printf("Le joueur n'a pas pu envoyer la carte au joueur car son état l'en empêche !\n");
+            sleep(1);
         } else {
             sleep(1);
+            clearShm();
+            sleep(2);
             t_comm comm;
             comm.dest = rx.src;
             comm.type = OK;
             sendMessageToClient_comm(comm);
             answered = true;
+            printf("Le joueur a bien envoyé la carte !\n");
+            sleep(1);
         }
         break;
     }
@@ -542,7 +557,7 @@ void gameHandle(void) {
             strncpy(snd.msg, "Carte !",256);
             snd.src = 0;
             sendMessageToClient_comm(snd);
-            printf("Envoi de la carte %s\n", pioche[j+debut].nom);
+            //printf("Envoi de la carte %s\n", pioche[j+debut].nom);
             while(ack_remain != 0) {usleep(250000);}
         }
         debut+=6;
@@ -563,10 +578,8 @@ void gameHandle(void) {
             snd.src = 0;
             sendMessageToClient_comm(snd);
             while(!answered) {sleep(1);}
-            printf("Le joueur à répondu\nDATA:\nTraveled: %d\n", joueurs[i].traveled);
             
             if (joueurs[i].traveled >= 400) {
-                printf("\t\t\tDEPASSE\n");
                 victory = true;
                 id_victory = i;
                 break;
@@ -584,7 +597,14 @@ void gameHandle(void) {
     sendMessageToClient_comm(msg);
     
 
-    printf("On a une victoire\n");
+    printf("<<<<<<<<<<<<<<<<<<Victoire d'un Joueur !>>>>>>>>>>>>>>>>>>\n");
+
+    printf("TABLEAU DES SCORES :\n");
+    for (int i = 0; i<nbJoueur; i++) {
+        printf("- %s (Joueur %d) : %d\n", joueurs[i].pseudo, i+1, joueurs[i].traveled);
+    }
+    printf("Bravo au gagnant (%s) !\n", joueurs[id_victory].pseudo);
+    printf("----------------------------------------------------------\n");
 }
 
 void * findByPid(int p) {
@@ -620,11 +640,12 @@ int main(int argc, char *argv[]) {
     // On récupère la taille du terminal
     struct winsize ws;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+    /*
     printf("Dimension du terminal = %dx%d\n", ws.ws_col, ws.ws_row); // Contrôle durant le dev, TODO retirer cette ligne
 
     // On affiche le nombre de cases sur la carte
     printf("La carte contient %d cases\n", verifierNbCases());
-
+    */
     
     for(int i = 0; i < nbJoueur; ++i) {
         struct joueur tmp;
@@ -649,20 +670,21 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-
+    /*
     for (int i = 0; i<nbJoueur; i++) {
         printf("Joueur %d : Place %d\n", i, joueurs[i].ordre);
     }
-
+    */
     genererCartes();
-    printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
+    //printf("Il y a %ld cartes dans la pioche\n", sizeof(pioche) / sizeof(pioche[0]));
 
     shufflePioche(10);
+    /*
     printf("Affichage des 10ères cartes de la pioche (tmp pour le dév) :\n");
     for(int i = 0; i < 10; ++i) {
         printf("\t%s | %s\n", pioche[i].nom, pioche[i].description);
     }
-
+    */
 
     pthread_create(&thread_listener, NULL, listener, NULL);
 
