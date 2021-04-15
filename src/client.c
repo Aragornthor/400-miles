@@ -49,7 +49,9 @@ bool stopped = true, accident = false, slowed = false, fuel = false, tire = fals
 bool good_driver = false, fuel_master = false, prior = false, good_tire = false;
 
 
-
+/*
+    Vidage du buffer pour ReadLine
+*/
 void emptybuff() {
     int c = 0;
     while (c!='\n' && c!=EOF) {
@@ -57,6 +59,9 @@ void emptybuff() {
     }
 }
 
+/*
+    Lis l'entrée clavier dans un char* chaine avec une taille définie (length)
+*/
 int readline(char *chaine, int length) {
     char *start = NULL;
     if (fgets(chaine, length, stdin) != NULL) {
@@ -401,6 +406,9 @@ void throw_card() {
     printf("La carte a été retournée au serveur !\n");
 }
 
+/*
+    Affiche les status du joueur
+*/
 void printStatus(void) {
     if (slowed) {
         printf("- Ralenti\n");
@@ -420,8 +428,11 @@ void printStatus(void) {
 }
 
 /*
-    Algorithmie du jeu, commençant par l'attente de carte en début de partie
-    jusque la fin du jeu...
+    Algorithmie du jeu...
+    -> Attente des cartes de la part du serveur
+    -> Attente du tour du joueur
+    -> Gestion du tour (choix carte, si envoi vers défausse, si envoi vers le jeu ou un joueur...)
+    -> Gestion d'une victoire
 */
 void handleGame(void) {
     printf("En attente des cartes...\n");
