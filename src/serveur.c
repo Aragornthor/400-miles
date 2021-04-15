@@ -78,33 +78,9 @@ void initMessage(void) {
     CHECK(id_file, "Impossible de créer le flux de message");
 }
 
-
-/*
-    Envoie au client (message)
-*/
-void sendMessageToClient_msg(char message[256]) {
-    int res;
-    message_t msg;
-    msg.type = 1;
-    strncpy(msg.msg, message, 256);
-    if(nr == 0) {nr++; return;}
-    res = msgsnd(id_file, (void *) &msg, sizeof(char)*256, 0);
-    CHECK(res, "Envoi du message impossible\n");
-}
-
 /*
     Envoie au client (shared memory)
-*/
-void sendMessageToClient(char message[256]) {
-    char* write;
-    write = shmat(shared_memory,NULL, 0);
-    strncpy(write, message,256);
-    CHECK(shmdt(write), "shmdt()");
-}
-
-
-/*
-    Envoie au client (shared memory) | Comm
+    comm: communication (t_comm)
 */
 void sendMessageToClient_comm(t_comm comm) { 
     if (comm.dest == -1) {
@@ -120,6 +96,9 @@ void sendMessageToClient_comm(t_comm comm) {
     CHECK(shmdt(snd), "shmdt()");
 }
 
+/*
+    Vidange de la mémoire partagée (évite des données résiduelles)
+*/
 void clearShm(void) {
     t_comm comm;
     comm.dest = 0;
@@ -127,7 +106,10 @@ void clearShm(void) {
 }
 
 
-
+/*
+    Créé une carte à partir du nom, son type, les mouvements, sa description
+    et son identifiant
+*/
 carte creerCarte(char * nom, int type, int move, char * desc, int ident) {
     carte tmp;
     strncpy(tmp.nom, nom, 256);
@@ -140,6 +122,9 @@ carte creerCarte(char * nom, int type, int move, char * desc, int ident) {
     return tmp;
 }
 
+/*
+    Arrange l'ordre des cartes dans la liste d'une manière aléatoire
+*/
 void shufflePioche(int nbShuffle) {
     for(int j = 0; j < nbShuffle; ++j) {
         for(int i = 0; i < (NB_PIOCHE / 2); ++i) {
@@ -152,6 +137,9 @@ void shufflePioche(int nbShuffle) {
     }
 }
 
+/*
+    Génération de l'ensemble des cartes
+*/
 void genererCartes(void) {
     for(int i = 0; i < NB_PIOCHE; ++i) {
         if(i < 30) {
@@ -194,11 +182,17 @@ void genererCartes(void) {
     }
 }
 
+/*
+    Créé l'écouteur des clients via le fifo
+*/
 void createListener(void) {
     mkfifo("game.fifo",0666);
     reader_fifo = open("game.fifo", O_RDONLY);
 }
 
+/*
+    Demande le nombre de joueurs
+*/
 char questionNbJoueur(void) {
     char nbJoueur; 
     printf("Combien de joueurs vont jouer ? [2 - 4] ");
@@ -214,6 +208,10 @@ char questionNbJoueur(void) {
     return nbJoueur;
 }
 
+/*
+    Vérifie si la case existe
+    (unused)
+*/
 int isCaseValide(int x, int y) {
     if(map[y][x] == ' ' && map[y][x - 1] != ' ' && map[y][x + 1] != ' ') {
         return true;
@@ -226,6 +224,10 @@ int isCaseValide(int x, int y) {
     return false;
 }
 
+/*
+    Vérification du nombre de cartes
+    (unused)
+*/
 int verifierNbCases(void) {
     int compteur = 0;
     for(int hauteur = 0; hauteur < MAP_HEIGHT; ++hauteur) {
@@ -239,6 +241,10 @@ int verifierNbCases(void) {
     return compteur;
 }
 
+/*
+    Lance un dé avec une valeur maximale
+    Retourne un entier
+*/
 int lancerDe(int max) {
     return rand() % max + 1;
 }
@@ -250,11 +256,18 @@ void del_shm(void) {
     CHECK( shmctl(shared_memory, IPC_RMID, NULL),"shmctl()");
 }
 
+/*
+    Ferme le programme quand aucun client n'est connecté
+*/
 void force_close() {
     printf("Arrêt forcé du programme : plus aucun client connecté. Tube cassé.\n");
     exit(EXIT_FAILURE);
 }
 
+/*
+    Ajoute un joueur à la connexion en fonction de son pseudonyme et 
+    l'identifiant du processus
+*/
 void addPlayerToConnexions(int pid, char pseudo[256]) {
     t_connexion c;
     c.pid = pid;
@@ -267,6 +280,10 @@ void addPlayerToConnexions(int pid, char pseudo[256]) {
     nbconnexions++;
 }
 
+/*
+    Gère les ACK reçu par les clients 
+    (montre que les clients on bien reçu les messages envoyés)
+*/
 void handleACK() {
     ack_remain--;
     if (ack_remain == 0) {
@@ -283,6 +300,10 @@ void handleACK() {
     }
 }
 
+/*
+    Gère les LOGIN reçu par les clients
+    (à leur connexion)
+*/
 void handleLogin(t_comm msg) {
     if (msg.src == 0) {force_close();}
 
@@ -298,6 +319,10 @@ void handleLogin(t_comm msg) {
     }
 }
 
+/*
+    Envoie une carte au client selon la carte, l'identifiant donné par l'utilisateur
+    envoyeur et l'utilisateur envoyeur
+*/
 bool sendCardToClient(carte carte, int lid, int src) {
     int choices[nbJoueur-1];
     int cpt = 0;
@@ -350,6 +375,12 @@ bool sendCardToClient(carte carte, int lid, int src) {
     return true;
 }
 
+/*
+    Gère la récéption des cartes de la part des clients
+    -> si c'est pour la défausse
+    -> si c'est pour le jeu du joueur
+    -> si c'est pour un autre joueur
+*/
 void handleRxCard(t_comm rx) {
     int dest = rx.dest;
     int playerindex = 0;
@@ -455,6 +486,10 @@ void handleRxCard(t_comm rx) {
     joueurs[playerindex] = tx;
 
 }
+
+/*
+    Envoie le nombre de joueurs à l'utilisateur
+*/
 void sendPseudo(int dest) {
     t_comm comm;
     comm.type = PSEUDO;
@@ -463,6 +498,9 @@ void sendPseudo(int dest) {
     sendMessageToClient_comm(comm);
 }
 
+/*
+    Méthode du thread écouteur pour gérer l'ensemble des messages entrants
+*/
 void *listener() {
     char msg[256];
     createListener();   
@@ -502,6 +540,9 @@ void *listener() {
     close(reader_fifo);
 }
 
+/*
+    Vidage du Buffer pour ReadLine
+*/
 void emptybuff() {
     int c = 0;
     while (c!='\n' && c!=EOF) {
@@ -509,6 +550,10 @@ void emptybuff() {
     }
 }
 
+/*
+    Récupère l'entrée clavier vers le char* "chaine" avec
+    une longueur définie
+*/
 int readline(char *chaine, int length) {
     char *start = NULL;
     if (fgets(chaine, length, stdin) != NULL) {
@@ -529,6 +574,10 @@ int readline(char *chaine, int length) {
 
 /*
     Déroulement de la partie
+    -> connexion des joueurs
+    -> distribution initiale des cartes
+    -> gestion du jeu des joueurs
+    -> victoire des joueurs
 */
 void gameHandle(void) {
     // Attente des joueurs
