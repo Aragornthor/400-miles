@@ -454,7 +454,7 @@ void handleGame(void) {
         }
         if (endgame) {break;}
         printf("C'est à votre tour !\n");
-        printf("Votre statut : %s\n");
+        printf("Votre statut : \n");
 
         printStatus();
 
@@ -474,6 +474,7 @@ void handleGame(void) {
             while (rep <= 0 || rep > 8) {
             printf("> ");
             char * tmp;
+            tmp = malloc(sizeof(char)*256);
             readline(tmp, 256);
             rep = atoi(tmp);
         }

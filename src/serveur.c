@@ -397,7 +397,7 @@ void handleRxCard(t_comm rx) {
         // pr la défausse
         defausse[nb_defausse] = rx.carte;
         nb_defausse++;
-        printf("Une carte a été ajoutée à la défausse : %s\n", rx.carte.nom, rx.carte.description);
+        printf("Une carte a été ajoutée à la défausse : %s\n", rx.carte.nom);
         answered = true;
         break;
     
